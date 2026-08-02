@@ -9,7 +9,8 @@
 
 BEGIN;
 
-CREATE OR REPLACE VIEW ledger_view AS
+DROP VIEW IF EXISTS ledger_view;
+CREATE VIEW ledger_view AS
 SELECT
     t.branch_id,
     tl.account_id,
@@ -27,7 +28,8 @@ JOIN transactions t ON t.id = tl.transaction_id
 JOIN chart_of_accounts coa ON coa.id = tl.account_id
 WHERE t.status = 'posted';
 
-CREATE OR REPLACE VIEW trial_balance_view AS
+DROP VIEW IF EXISTS trial_balance_view;
+CREATE VIEW trial_balance_view AS
 SELECT
     t.branch_id,
     tl.account_id,
@@ -43,7 +45,8 @@ JOIN chart_of_accounts coa ON coa.id = tl.account_id
 WHERE t.status = 'posted'
 GROUP BY t.branch_id, tl.account_id, coa.account_code, coa.account_name, coa.account_type;
 
-CREATE OR REPLACE VIEW profit_loss_view AS
+DROP VIEW IF EXISTS profit_loss_view;
+CREATE VIEW profit_loss_view AS
 SELECT
     t.branch_id,
     coa.account_type,
@@ -57,14 +60,16 @@ GROUP BY t.branch_id, coa.account_type, coa.account_name;
 
 -- Order pipeline and overdue-orders views gain branch_id too, since
 -- tailor_orders now carries it.
-CREATE OR REPLACE VIEW order_pipeline_view AS
+DROP VIEW IF EXISTS order_pipeline_view;
+CREATE VIEW order_pipeline_view AS
 SELECT branch_id, current_stage, order_kind, COUNT(*) AS order_count,
        SUM(balance_due) AS total_balance_due
 FROM tailor_orders
 WHERE status = 'in_progress'
 GROUP BY branch_id, current_stage, order_kind;
 
-CREATE OR REPLACE VIEW overdue_orders_view AS
+DROP VIEW IF EXISTS overdue_orders_view;
+CREATE VIEW overdue_orders_view AS
 SELECT o.id, o.branch_id, o.order_no, o.customer_id, c.name AS customer_name, o.garment_type,
        o.promised_date, o.current_stage, (CURRENT_DATE - o.promised_date) AS days_overdue
 FROM tailor_orders o
@@ -73,7 +78,8 @@ WHERE o.status = 'in_progress' AND o.promised_date < CURRENT_DATE;
 
 -- Low stock view gains branch_id too, since both product_variants and
 -- fabrics are now per-branch rows.
-CREATE OR REPLACE VIEW low_stock_view AS
+DROP VIEW IF EXISTS low_stock_view;
+CREATE VIEW low_stock_view AS
 SELECT 'variant' AS item_kind, pv.id AS item_id, pv.branch_id,
        p.name || ' (' || COALESCE(pv.size,'') || '/' || COALESCE(pv.color,'') || ')' AS item_name,
        pv.stock_qty AS current_qty, pv.reorder_level

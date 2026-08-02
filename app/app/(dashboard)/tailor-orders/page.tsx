@@ -1,0 +1,116 @@
+import Link from "next/link";
+import { db, tailorOrders, customers } from "@/lib/db";
+import { eq, desc } from "drizzle-orm";
+import { requireSession } from "@/lib/auth/get-session";
+
+const stageLabels: Record<string, string> = {
+  measurement: "Measurement",
+  fabric_selected: "Fabric Selected",
+  cutting: "Cutting",
+  stitching: "Stitching",
+  fitting: "Fitting",
+  finishing: "Finishing",
+  ready: "Ready",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
+
+const stageColors: Record<string, string> = {
+  measurement: "bg-slate-100 text-slate-600",
+  fabric_selected: "bg-slate-100 text-slate-600",
+  cutting: "bg-amber-50 text-amber-700",
+  stitching: "bg-amber-50 text-amber-700",
+  fitting: "bg-blue-50 text-blue-700",
+  finishing: "bg-blue-50 text-blue-700",
+  ready: "bg-emerald-50 text-emerald-700",
+  delivered: "bg-emerald-50 text-emerald-700",
+  cancelled: "bg-red-50 text-red-700",
+};
+
+export default async function TailorOrdersPage() {
+  const session = await requireSession();
+  const rows = await db
+    .select({
+      id: tailorOrders.id,
+      orderNo: tailorOrders.orderNo,
+      orderKind: tailorOrders.orderKind,
+      garmentType: tailorOrders.garmentType,
+      currentStage: tailorOrders.currentStage,
+      status: tailorOrders.status,
+      promisedDate: tailorOrders.promisedDate,
+      totalAmount: tailorOrders.totalAmount,
+      balanceDue: tailorOrders.balanceDue,
+      customerName: customers.name,
+    })
+    .from(tailorOrders)
+    .leftJoin(customers, eq(customers.id, tailorOrders.customerId))
+    .where(eq(tailorOrders.branchId, session.branchId))
+    .orderBy(desc(tailorOrders.createdAt))
+    .limit(100);
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900">Tailor Orders — {session.branchName}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Most recent 100 orders across both custom garments and alterations.</p>
+        </div>
+        <Link href="/tailor-orders/new" className="text-sm rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
+          + New Order
+        </Link>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
+              <th className="px-4 py-2.5">Order No</th>
+              <th className="px-4 py-2.5">Customer</th>
+              <th className="px-4 py-2.5">Kind</th>
+              <th className="px-4 py-2.5">Garment</th>
+              <th className="px-4 py-2.5">Promised</th>
+              <th className="px-4 py-2.5">Stage</th>
+              <th className="px-4 py-2.5 text-right">Total</th>
+              <th className="px-4 py-2.5 text-right">Balance Due</th>
+              <th className="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={9} className="px-4 py-10 text-center text-slate-400">
+                  No orders yet.
+                </td>
+              </tr>
+            )}
+            {rows.map((o) => (
+              <tr key={o.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <td className="px-4 py-2.5 font-medium text-slate-900">
+                  <Link href={`/tailor-orders/${o.id}`} className="hover:underline">
+                    {o.orderNo}
+                  </Link>
+                </td>
+                <td className="px-4 py-2.5 text-slate-600">{o.customerName ?? "—"}</td>
+                <td className="px-4 py-2.5 text-slate-600 capitalize">{o.orderKind}</td>
+                <td className="px-4 py-2.5 text-slate-600 capitalize">{o.garmentType}</td>
+                <td className="px-4 py-2.5 text-slate-600">{o.promisedDate ?? "—"}</td>
+                <td className="px-4 py-2.5">
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${stageColors[o.currentStage] ?? "bg-slate-100 text-slate-600"}`}>
+                    {stageLabels[o.currentStage] ?? o.currentStage}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-right text-slate-900">{Number(o.totalAmount).toFixed(2)}</td>
+                <td className="px-4 py-2.5 text-right font-medium text-slate-900">{Number(o.balanceDue).toFixed(2)}</td>
+                <td className="px-4 py-2.5 text-right">
+                  <a href={`/api/tailor-orders/${o.id}/pdf`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-900 underline">
+                    PDF
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

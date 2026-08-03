@@ -11,7 +11,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set. Add it to your .env.local file.");
 }
 
-const shouldUseSsl = /sslmode=(require|verify-ca|verify-full)/i.test(connectionString) || /supabase\.co/i.test(connectionString);
+const shouldUseSsl = /sslmode=(require|verify-ca|verify-full)/i.test(connectionString) || /supabase\.(co|com)/i.test(connectionString);
 const client = postgres(connectionString, {
   max: 10,
   ssl: shouldUseSsl ? { rejectUnauthorized: false } : undefined,

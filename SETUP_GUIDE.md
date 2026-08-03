@@ -42,9 +42,18 @@ DATABASE_URL="postgres://postgres:yourpassword@localhost:5432/tailor_shop"
 SESSION_SECRET="generate-a-long-random-string-here"
 ```
 
+If you are connecting to Supabase/Postgres over TLS, make sure your `DATABASE_URL` includes `?sslmode=require` or use the Supabase connection string exactly as provided.
+
 ```bash
 openssl rand -base64 48
 ```
+
+For Vercel, add the same two environment variables to your project:
+
+- `DATABASE_URL` = your Supabase/Postgres connection string
+- `SESSION_SECRET` = a long random string used to sign session cookies
+
+For this app, `NEXT_PUBLIC_APP_URL` is not required.
 
 ## 4. Run the migrations, in order
 

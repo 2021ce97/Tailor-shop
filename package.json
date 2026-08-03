@@ -1,9 +1,0 @@
-{
-  "private": true,
-  "workspaces": ["app"],
-  "scripts": {
-    "build": "cd app && npm run build",
-    "dev": "cd app && npm run dev",
-    "lint": "cd app && npm run lint"
-  }
-}

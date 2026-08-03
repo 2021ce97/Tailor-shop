@@ -53,6 +53,8 @@ For Vercel, add the same two environment variables to your project:
 - `DATABASE_URL` = your Supabase/Postgres connection string
 - `SESSION_SECRET` = a long random string used to sign session cookies
 
+In the Vercel project settings, set the Root Directory to `app` if your repository is configured from the repo root. Do not keep `rootDirectory` in `vercel.json` because Vercel may reject it.
+
 For this app, `NEXT_PUBLIC_APP_URL` is not required.
 
 ## 4. Run the migrations, in order

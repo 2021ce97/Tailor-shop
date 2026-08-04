@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createPurchaseOrder, receivePurchaseOrder } from "@/lib/accounting/purchase-orders";
+import { createPurchaseOrder, receivePurchaseOrder, recordSupplierPayment } from "@/lib/accounting/purchase-orders";
 import { requireSession } from "@/lib/auth/get-session";
 import { revalidatePath } from "next/cache";
 
@@ -72,6 +72,15 @@ const receiveSchema = z.object({
 
 export type ReceiveFormState = { status: "idle" | "success" | "error"; message?: string };
 
+const supplierPaymentSchema = z.object({
+  purchaseOrderId: z.coerce.number().int().positive(),
+  amount: z.coerce.number().positive(),
+  paymentMethod: z.enum(["cash", "bank"]),
+  notes: z.string().optional(),
+});
+
+export type SupplierPaymentState = { status: "idle" | "success" | "error"; message?: string };
+
 export async function submitReceivePurchaseOrder(_prevState: ReceiveFormState, formData: FormData): Promise<ReceiveFormState> {
   const parsed = receiveSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { status: "error", message: "Please check the receiving quantities." };
@@ -97,5 +106,31 @@ export async function submitReceivePurchaseOrder(_prevState: ReceiveFormState, f
     return { status: "success", message: "Stock received and recorded." };
   } catch (err) {
     return { status: "error", message: err instanceof Error ? err.message : "Failed to receive purchase order." };
+  }
+}
+
+export async function submitSupplierPayment(_prevState: SupplierPaymentState, formData: FormData): Promise<SupplierPaymentState> {
+  const parsed = supplierPaymentSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return { status: "error", message: "Please enter a valid payment amount and method." };
+  }
+
+  const session = await requireSession();
+
+  try {
+    await recordSupplierPayment({
+      purchaseOrderId: parsed.data.purchaseOrderId,
+      branchId: session.branchId,
+      amount: parsed.data.amount,
+      paymentMethod: parsed.data.paymentMethod,
+      paidBy: session.userId,
+      notes: parsed.data.notes,
+    });
+
+    revalidatePath(`/purchase-orders/${parsed.data.purchaseOrderId}`);
+    revalidatePath("/purchase-orders");
+    return { status: "success", message: "Supplier payment recorded." };
+  } catch (err) {
+    return { status: "error", message: err instanceof Error ? err.message : "Failed to record supplier payment." };
   }
 }

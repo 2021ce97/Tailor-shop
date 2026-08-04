@@ -8,20 +8,19 @@ import { Plus, Trash2 } from "lucide-react";
 
 const initialState: MeasurementFormState = { status: "idle" };
 
-const garmentTypes = ["shirt", "pant", "suit", "kurta", "dress", "coat", "other"] as const;
+const garmentTemplates = {
+  shirt: { label: "Shirt", fields: ["chest", "waist", "shoulder", "sleeve_length", "collar", "shirt_length"] },
+  pant: { label: "Pant", fields: ["waist", "hip", "inseam", "outseam", "thigh", "bottom"] },
+  suit: { label: "Suit", fields: ["chest", "waist", "shoulder", "sleeve_length", "jacket_length", "trouser_waist", "trouser_length"] },
+  kurta: { label: "Kurta", fields: ["chest", "waist", "shoulder", "sleeve_length", "kurta_length"] },
+  dress: { label: "Dress", fields: ["bust", "waist", "hip", "shoulder", "dress_length"] },
+  coat: { label: "Coat", fields: ["chest", "shoulder", "sleeve_length", "coat_length"] },
+  other: { label: "Other", fields: [] },
+} as const;
 
-// Sensible starting points per garment type — the shop can add, remove,
-// or rename any of these; the list is just to save typing on the
-// common case, not a fixed schema.
-const suggestedFields: Record<string, string[]> = {
-  shirt: ["chest", "waist", "shoulder", "sleeve_length", "collar", "shirt_length"],
-  pant: ["waist", "hip", "inseam", "outseam", "thigh", "bottom"],
-  suit: ["chest", "waist", "shoulder", "sleeve_length", "jacket_length", "trouser_waist", "trouser_length"],
-  kurta: ["chest", "waist", "shoulder", "sleeve_length", "kurta_length"],
-  dress: ["bust", "waist", "hip", "shoulder", "dress_length"],
-  coat: ["chest", "shoulder", "sleeve_length", "coat_length"],
-  other: [],
-};
+type GarmentType = keyof typeof garmentTemplates;
+
+const garmentTypes = Object.entries(garmentTemplates).map(([value, config]) => ({ value, label: config.label }));
 
 interface MeasurementField {
   key: string;
@@ -30,14 +29,16 @@ interface MeasurementField {
 
 export function MeasurementForm({ customerId }: { customerId: number }) {
   const [state, formAction, isPending] = useActionState(createMeasurementProfile, initialState);
-  const [garmentType, setGarmentType] = useState<(typeof garmentTypes)[number]>("shirt");
-  const [fields, setFields] = useState<MeasurementField[]>(
-    suggestedFields.shirt.map((k) => ({ key: k, value: "" }))
-  );
+  const [garmentType, setGarmentType] = useState<GarmentType>("shirt");
+  const [fields, setFields] = useState<MeasurementField[]>(() => garmentTemplates.shirt.fields.map((k) => ({ key: k, value: "" })));
 
-  function changeGarmentType(type: (typeof garmentTypes)[number]) {
+  function changeGarmentType(type: GarmentType) {
     setGarmentType(type);
-    setFields(suggestedFields[type].map((k) => ({ key: k, value: "" })));
+    setFields(garmentTemplates[type].fields.map((k) => ({ key: k, value: "" })));
+  }
+
+  function resetTemplate() {
+    setFields(garmentTemplates[garmentType].fields.map((k) => ({ key: k, value: "" })));
   }
 
   function updateField(index: number, patch: Partial<MeasurementField>) {
@@ -79,12 +80,12 @@ export function MeasurementForm({ customerId }: { customerId: number }) {
           <select
             name="garmentType"
             value={garmentType}
-            onChange={(e) => changeGarmentType(e.target.value as (typeof garmentTypes)[number])}
+            onChange={(e) => changeGarmentType(e.target.value as GarmentType)}
             className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
           >
             {garmentTypes.map((t) => (
-              <option key={t} value={t}>
-                {t}
+              <option key={t.value} value={t.value}>
+                {t.label}
               </option>
             ))}
           </select>
@@ -95,10 +96,18 @@ export function MeasurementForm({ customerId }: { customerId: number }) {
       <div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-medium text-slate-600">Measurements (in inches, or your shop's unit)</span>
-          <button type="button" onClick={addField} className="flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
-            <Plus className="size-3.5" /> Add field
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={resetTemplate} className="text-xs font-medium text-slate-500 hover:text-slate-900">
+              Reset template
+            </button>
+            <button type="button" onClick={addField} className="flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900">
+              <Plus className="size-3.5" /> Add field
+            </button>
+          </div>
         </div>
+        <p className="text-xs text-slate-500 mb-3">
+          {garmentTemplates[garmentType].label} template loaded. Add or rename fields for this style as needed.
+        </p>
         <div className="space-y-2">
           {fields.map((f, i) => (
             <div key={i} className="grid grid-cols-12 gap-2 items-center">

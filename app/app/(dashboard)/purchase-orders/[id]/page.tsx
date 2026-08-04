@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db, purchaseOrders, purchaseOrderItems, suppliers, productVariants, products, fabrics } from "@/lib/db";
 import { eq } from "drizzle-orm";
+import { getPurchaseOrderOutstandingBalance } from "@/lib/accounting/purchase-orders";
 import { ReceiveForm } from "./receive-form";
+import { SupplierPaymentForm } from "./payment-form";
 
 export default async function PurchaseOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,9 +13,10 @@ export default async function PurchaseOrderDetailPage({ params }: { params: Prom
   const [po] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, poId));
   if (!po) notFound();
 
-  const [supplier, items] = await Promise.all([
+  const [supplier, items, outstandingBalance] = await Promise.all([
     db.select().from(suppliers).where(eq(suppliers.id, po.supplierId)).then((r) => r[0]),
     db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, poId)),
+    getPurchaseOrderOutstandingBalance(poId),
   ]);
 
   // Resolve labels for variant/fabric lines
@@ -92,6 +95,21 @@ export default async function PurchaseOrderDetailPage({ params }: { params: Prom
       </section>
 
       {po.status !== "cancelled" && <ReceiveForm purchaseOrderId={po.id} lines={lines} />}
+
+      <section className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Supplier Payment</h2>
+            <p className="text-sm text-slate-500">Record cash or bank payment against this purchase order.</p>
+          </div>
+          <div className="text-right">
+            <div className="text-xs uppercase tracking-wide text-slate-400">Outstanding</div>
+            <div className="text-lg font-semibold text-slate-900">{outstandingBalance.toFixed(2)}</div>
+          </div>
+        </div>
+
+        {outstandingBalance > 0.001 ? <SupplierPaymentForm purchaseOrderId={po.id} outstanding={outstandingBalance} /> : <div className="rounded-md bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800">This purchase order is fully paid.</div>}
+      </section>
     </div>
   );
 }

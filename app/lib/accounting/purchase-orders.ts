@@ -96,6 +96,84 @@ export interface ReceivePurchaseOrderInput {
   receivedBy: number;
 }
 
+export interface RecordSupplierPaymentInput {
+  purchaseOrderId: number;
+  branchId: number;
+  amount: number;
+  paymentMethod: "cash" | "bank";
+  paidBy: number;
+  notes?: string;
+}
+
+export async function getPurchaseOrderOutstandingBalance(purchaseOrderId: number) {
+  const rows = await db
+    .select({ txnType: transactions.txnType, totalAmount: transactions.totalAmount })
+    .from(transactions)
+    .where(and(eq(transactions.referenceType, "purchase_order"), eq(transactions.referenceId, purchaseOrderId), eq(transactions.status, "posted")));
+
+  const receivedTotal = rows.filter((row) => row.txnType === "purchase").reduce((sum, row) => sum + Number(row.totalAmount), 0);
+  const paidTotal = rows.filter((row) => row.txnType === "supplier_payment").reduce((sum, row) => sum + Number(row.totalAmount), 0);
+
+  return receivedTotal - paidTotal;
+}
+
+export async function recordSupplierPayment(input: RecordSupplierPaymentInput) {
+  if (input.amount <= 0) throw new Error("Enter a payment amount greater than zero.");
+
+  const [po] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, input.purchaseOrderId));
+  if (!po) throw new Error("Purchase order not found.");
+
+  const outstanding = await getPurchaseOrderOutstandingBalance(input.purchaseOrderId);
+  if (input.amount > outstanding + 0.001) {
+    throw new Error(`The payment amount exceeds the outstanding balance of ${outstanding.toFixed(2)}.`);
+  }
+
+  return await db.transaction(async (tx) => {
+    const [payableAccount] = await tx.select({ id: chartOfAccounts.id }).from(chartOfAccounts).where(eq(chartOfAccounts.accountCode, "2000"));
+    if (!payableAccount) throw new Error("Chart of accounts missing Accounts Payable (2000).");
+
+    const cashAccountCode = input.paymentMethod === "bank" ? "1010" : "1000";
+    const [cashAccount] = await tx.select({ id: chartOfAccounts.id }).from(chartOfAccounts).where(eq(chartOfAccounts.accountCode, cashAccountCode));
+    if (!cashAccount) throw new Error(`Chart of accounts missing ${cashAccountCode}.`);
+
+    const [txn] = await tx
+      .insert(transactions)
+      .values({
+        txnNo: `${po.poNo}-PAY-${Date.now()}`,
+        txnType: "supplier_payment",
+        txnDate: new Date().toISOString().slice(0, 10),
+        branchId: input.branchId,
+        referenceType: "purchase_order",
+        referenceId: po.id,
+        supplierId: po.supplierId,
+        totalAmount: String(input.amount),
+        notes: input.notes || `Supplier payment against PO ${po.poNo}`,
+        status: "posted",
+        createdBy: input.paidBy,
+      })
+      .returning();
+
+    await tx.insert(transactionLines).values([
+      {
+        transactionId: txn.id,
+        accountId: payableAccount.id,
+        description: `Supplier payment for PO ${po.poNo}`,
+        debitAmount: String(input.amount),
+        creditAmount: "0",
+      },
+      {
+        transactionId: txn.id,
+        accountId: cashAccount.id,
+        description: `Supplier payment for PO ${po.poNo}`,
+        debitAmount: "0",
+        creditAmount: String(input.amount),
+      },
+    ]);
+
+    return txn;
+  });
+}
+
 /**
  * Receives some or all of a PO's outstanding quantity. Stock updates
  * happen line by line; a single combined accounting entry covers the

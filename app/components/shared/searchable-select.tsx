@@ -21,6 +21,7 @@ export function SearchableSelect({
   required,
   error,
   placeholder = "Type to search…",
+  onSelect,
 }: {
   name: string;
   label: string;
@@ -28,6 +29,7 @@ export function SearchableSelect({
   required?: boolean;
   error?: string[];
   placeholder?: string;
+  onSelect?: (option: SearchableOption | null) => void;
 }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<SearchableOption | null>(null);
@@ -50,6 +52,7 @@ export function SearchableSelect({
         value={selected ? selected.label : query}
         onChange={(e) => {
           setSelected(null);
+          onSelect?.(null);
           setQuery(e.target.value);
           setOpen(true);
         }}
@@ -66,6 +69,7 @@ export function SearchableSelect({
               type="button"
               onMouseDown={() => {
                 setSelected(o);
+                onSelect?.(o);
                 setQuery("");
                 setOpen(false);
               }}

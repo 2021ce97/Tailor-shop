@@ -10,14 +10,23 @@ const initialState: TailorOrderFormState = { status: "idle" };
 
 const garmentTypes = ["shirt", "pant", "suit", "kurta", "dress", "coat", "other"];
 
+interface MeasurementProfileOption {
+  value: number;
+  customerId: number;
+  label: string;
+  takenAt: string;
+}
+
 export function TailorOrderForm({
   customers,
   fabrics,
   tailorStaff,
+  measurementProfiles,
 }: {
   customers: SearchableOption[];
   fabrics: (SearchableOption & { costPerUnit: number; unit: string })[];
   tailorStaff: SearchableOption[];
+  measurementProfiles: MeasurementProfileOption[];
 }) {
   const [state, formAction, isPending] = useActionState(submitTailorOrder, initialState);
 
@@ -27,6 +36,11 @@ export function TailorOrderForm({
   const [otherCharges, setOtherCharges] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [advancePaid, setAdvancePaid] = useState(0);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+
+  const customerProfiles = selectedCustomerId
+    ? measurementProfiles.filter((profile) => profile.customerId === selectedCustomerId)
+    : [];
 
   const total = useMemo(
     () => stitchingCharge + fabricCharge + otherCharges - discount,
@@ -74,14 +88,37 @@ export function TailorOrderForm({
       <section className="bg-white border border-slate-200 rounded-lg p-5">
         <h2 className="text-sm font-semibold text-slate-900 mb-4">Customer &amp; staff</h2>
         <div className="grid grid-cols-3 gap-4">
-          <SearchableSelect name="customerId" label="Customer" options={customers} required error={state.fieldErrors?.customerId} />
+          <SearchableSelect
+            name="customerId"
+            label="Customer"
+            options={customers}
+            required
+            error={state.fieldErrors?.customerId}
+            onSelect={(customer) => setSelectedCustomerId(customer?.value ?? null)}
+          />
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-slate-600">Measurement Profile</span>
+            <select
+              key={selectedCustomerId ?? "none"}
+              name="measurementProfileId"
+              defaultValue=""
+              disabled={!selectedCustomerId || customerProfiles.length === 0}
+              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm outline-none disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="">
+                {!selectedCustomerId ? "Select a customer first" : customerProfiles.length === 0 ? "No saved profiles" : "No profile for this order"}
+              </option>
+              {customerProfiles.map((profile) => (
+                <option key={profile.value} value={profile.value}>
+                  {profile.label} ({profile.takenAt})
+                </option>
+              ))}
+            </select>
+          </label>
           <SearchableSelect name="assignedTailorId" label="Assigned Tailor" options={tailorStaff} />
           <SearchableSelect name="assignedCutterId" label="Assigned Cutter" options={tailorStaff} />
         </div>
-        <p className="text-xs text-slate-400 mt-2">
-          To link a saved measurement profile, open the customer's page and note the profile — a direct picker here is
-          a nice follow-up once profiles per customer grow past a couple.
-        </p>
+        <p className="text-xs text-slate-400 mt-2">Saved profiles are filtered to the selected customer and attached to the order when chosen.</p>
       </section>
 
       <section className="bg-white border border-slate-200 rounded-lg p-5">

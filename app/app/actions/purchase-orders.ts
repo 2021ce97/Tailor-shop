@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createPurchaseOrder, receivePurchaseOrder, recordSupplierPayment } from "@/lib/accounting/purchase-orders";
-import { requireSession } from "@/lib/auth/get-session";
+import { canManagePurchaseOrders, requireSession } from "@/lib/auth/get-session";
 import { revalidatePath } from "next/cache";
 
 const lineSchema = z.object({
@@ -39,6 +39,9 @@ export async function submitPurchaseOrder(_prevState: PoFormState, formData: For
   }
 
   const session = await requireSession();
+  if (!canManagePurchaseOrders(session)) {
+    return { status: "error", message: "Only owners and managers can create purchase orders." };
+  }
 
   try {
     const po = await createPurchaseOrder({
@@ -93,6 +96,9 @@ export async function submitReceivePurchaseOrder(_prevState: ReceiveFormState, f
   }
 
   const session = await requireSession();
+  if (!canManagePurchaseOrders(session)) {
+    return { status: "error", message: "Only owners and managers can receive purchase orders." };
+  }
 
   try {
     await receivePurchaseOrder({
@@ -116,6 +122,9 @@ export async function submitSupplierPayment(_prevState: SupplierPaymentState, fo
   }
 
   const session = await requireSession();
+  if (!canManagePurchaseOrders(session)) {
+    return { status: "error", message: "Only owners and managers can record supplier payments." };
+  }
 
   try {
     await recordSupplierPayment({

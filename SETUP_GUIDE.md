@@ -117,10 +117,10 @@ Visit `http://localhost:3000` → redirects to `/login`.
 
 - `/pos` — retail checkout; a "Print Receipt" link appears after each sale
 - `/sale-returns` — look up a sale by number, pick what's coming back, process the refund (cash/bank/store credit); for an exchange, ring up the replacement separately and optionally link it
-- `/purchase-orders`, `/purchase-orders/new`, `/purchase-orders/[id]` — order stock from a supplier (retail variants and/or fabric in one PO), then receive it (partial receiving supported) — this is what actually moves stock and posts the accounting entry, not the PO itself
+- `/purchase-orders`, `/purchase-orders/new`, `/purchase-orders/[id]` — owner/manager-only purchase orders; receive stock (partial receiving supported), record cash/bank supplier payments, and review payment history
 - `/products`, `/products/[id]` — ready-made garments and their branch-specific size/color variants
 - `/inventory` — low-stock alerts across retail variants and fabric
-- `/tailor-orders/new`, `/tailor-orders`, `/tailor-orders/[id]` — custom orders and alterations, with a "Download Invoice" link once created
+- `/tailor-orders/new`, `/tailor-orders`, `/tailor-orders/[id]` — custom orders and alterations; choose a customer's saved measurement profile when creating an order, with a "Download Invoice" link once created
 - `/fabrics` — fabric stock, restocking
 - `/appointments` — fittings, measurement sessions
 - `/customers`, `/customers/[id]` — customer profiles, measurement profiles, order/purchase history with PDF links
@@ -167,11 +167,9 @@ invoices for both sales and tailor orders; a full double-entry
 accounting engine behind every one of these; profit/loss, pipeline,
 overdue-orders, staff-workload, and top-seller reports.
 
-**Not yet built:** paying suppliers against outstanding purchase
-orders (receiving posts to Accounts Payable, but there's no "pay
-supplier" screen yet), staff attendance/payroll, barcode scanner
-integration at POS, self-serve shop signup (this is still a
-single-owner-installs-it system, not a SaaS product), per-branch
+**Not yet built:** staff attendance/payroll, barcode scanner
+integration at POS, self-serve shop signup (intentionally out of
+scope for this single-owner installation), per-branch
 report filtering beyond what's already in Dashboard/Tailor Orders
 (Ledger/Trial Balance/Reports currently show figures across all
 branches combined).

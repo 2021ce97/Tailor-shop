@@ -10,7 +10,7 @@ import {
   transactionLines,
   chartOfAccounts,
 } from "@/lib/db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 
 /**
  * Purchase orders cover both retail variant restocking and fabric
@@ -53,6 +53,23 @@ export async function createPurchaseOrder(input: CreatePurchaseOrderInput) {
   const totalAmount = input.items.reduce((s, i) => s + i.quantity * i.unitCost, 0);
 
   return await db.transaction(async (tx) => {
+    const variantIds = [...new Set(input.items.flatMap((item) => (item.variantId ? [item.variantId] : [])))];
+    const fabricIds = [...new Set(input.items.flatMap((item) => (item.fabricId ? [item.fabricId] : [])))];
+    if (variantIds.length) {
+      const variants = await tx
+        .select({ id: productVariants.id })
+        .from(productVariants)
+        .where(and(inArray(productVariants.id, variantIds), eq(productVariants.branchId, input.branchId)));
+      if (variants.length !== variantIds.length) throw new Error("A selected product variant is not available in your active branch.");
+    }
+    if (fabricIds.length) {
+      const fabricRows = await tx
+        .select({ id: fabrics.id })
+        .from(fabrics)
+        .where(and(inArray(fabrics.id, fabricIds), eq(fabrics.branchId, input.branchId)));
+      if (fabricRows.length !== fabricIds.length) throw new Error("A selected fabric is not available in your active branch.");
+    }
+
     const [po] = await tx
       .insert(purchaseOrders)
       .values({
@@ -120,15 +137,40 @@ export async function getPurchaseOrderOutstandingBalance(purchaseOrderId: number
 export async function recordSupplierPayment(input: RecordSupplierPaymentInput) {
   if (input.amount <= 0) throw new Error("Enter a payment amount greater than zero.");
 
-  const [po] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, input.purchaseOrderId));
-  if (!po) throw new Error("Purchase order not found.");
-
-  const outstanding = await getPurchaseOrderOutstandingBalance(input.purchaseOrderId);
-  if (input.amount > outstanding + 0.001) {
-    throw new Error(`The payment amount exceeds the outstanding balance of ${outstanding.toFixed(2)}.`);
-  }
-
   return await db.transaction(async (tx) => {
+    // Locking the PO serializes payments against it. The outstanding total is
+    // intentionally calculated after the lock, so two concurrent submissions
+    // cannot both pay the same remaining balance.
+    await tx.execute(
+      sql`SELECT id FROM purchase_orders WHERE id = ${input.purchaseOrderId} AND branch_id = ${input.branchId} FOR UPDATE`
+    );
+    const [po] = await tx
+      .select()
+      .from(purchaseOrders)
+      .where(and(eq(purchaseOrders.id, input.purchaseOrderId), eq(purchaseOrders.branchId, input.branchId)));
+    if (!po) throw new Error("Purchase order not found in your active branch.");
+
+    const paymentRows = await tx
+      .select({ txnType: transactions.txnType, totalAmount: transactions.totalAmount })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.referenceType, "purchase_order"),
+          eq(transactions.referenceId, po.id),
+          eq(transactions.status, "posted")
+        )
+      );
+    const receivedTotal = paymentRows
+      .filter((row) => row.txnType === "purchase")
+      .reduce((sum, row) => sum + Number(row.totalAmount), 0);
+    const paidTotal = paymentRows
+      .filter((row) => row.txnType === "supplier_payment")
+      .reduce((sum, row) => sum + Number(row.totalAmount), 0);
+    const outstanding = receivedTotal - paidTotal;
+    if (input.amount > outstanding + 0.001) {
+      throw new Error(`The payment amount exceeds the outstanding balance of ${outstanding.toFixed(2)}.`);
+    }
+
     const [payableAccount] = await tx.select({ id: chartOfAccounts.id }).from(chartOfAccounts).where(eq(chartOfAccounts.accountCode, "2000"));
     if (!payableAccount) throw new Error("Chart of accounts missing Accounts Payable (2000).");
 
@@ -182,39 +224,69 @@ export async function recordSupplierPayment(input: RecordSupplierPaymentInput) {
  *   Dr  Retail Inventory (1200) / Fabric Inventory (1210) = value received
  *   Cr  Accounts Payable (2000)                            = value received
  *
- * Paying the supplier later is a separate step (not built yet — see
- * the project overview for what's still open); this only records that
- * the shop now owes the supplier for what physically arrived.
+ * Supplier payments are recorded separately, which keeps the payable
+ * balance tied to the value that has physically arrived.
  */
 export async function receivePurchaseOrder(input: ReceivePurchaseOrderInput) {
   if (input.lines.length === 0 || input.lines.every((l) => l.receiveQty <= 0)) {
     throw new Error("Enter a quantity to receive for at least one line.");
   }
 
-  const [po] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, input.purchaseOrderId));
-  if (!po) throw new Error("Purchase order not found.");
-  if (po.status === "cancelled") throw new Error("This purchase order was cancelled.");
-
   const itemIds = input.lines.map((l) => l.poItemId);
-  const items = await db.select().from(purchaseOrderItems).where(inArray(purchaseOrderItems.id, itemIds));
-
-  let retailValue = 0;
-  let fabricValue = 0;
-
-  for (const line of input.lines) {
-    if (line.receiveQty <= 0) continue;
-    const item = items.find((i) => i.id === line.poItemId);
-    if (!item) throw new Error(`Line ${line.poItemId} not found on this purchase order.`);
-    const remaining = Number(item.quantity) - Number(item.receivedQty);
-    if (line.receiveQty > remaining + 0.001) {
-      throw new Error(`Cannot receive ${line.receiveQty} — only ${remaining} remaining on this line.`);
-    }
-    const value = line.receiveQty * Number(item.unitCost);
-    if (item.variantId) retailValue += value;
-    if (item.fabricId) fabricValue += value;
-  }
 
   return await db.transaction(async (tx) => {
+    // Use the same PO lock as supplier payments/receiving to keep stock,
+    // payable, and received quantities consistent under concurrent requests.
+    await tx.execute(
+      sql`SELECT id FROM purchase_orders WHERE id = ${input.purchaseOrderId} AND branch_id = ${input.branchId} FOR UPDATE`
+    );
+    const [po] = await tx
+      .select()
+      .from(purchaseOrders)
+      .where(and(eq(purchaseOrders.id, input.purchaseOrderId), eq(purchaseOrders.branchId, input.branchId)));
+    if (!po) throw new Error("Purchase order not found in your active branch.");
+    if (po.status === "cancelled") throw new Error("This purchase order was cancelled.");
+
+    const items = await tx
+      .select()
+      .from(purchaseOrderItems)
+      .where(and(inArray(purchaseOrderItems.id, itemIds), eq(purchaseOrderItems.purchaseOrderId, po.id)));
+    if (items.length !== itemIds.length) {
+      throw new Error("One or more receiving lines do not belong to this purchase order.");
+    }
+
+    const variantIds = [...new Set(items.flatMap((item) => (item.variantId ? [item.variantId] : [])))];
+    const fabricIds = [...new Set(items.flatMap((item) => (item.fabricId ? [item.fabricId] : [])))];
+    if (variantIds.length) {
+      const variants = await tx
+        .select({ id: productVariants.id })
+        .from(productVariants)
+        .where(and(inArray(productVariants.id, variantIds), eq(productVariants.branchId, po.branchId)));
+      if (variants.length !== variantIds.length) throw new Error("A purchase-order product belongs to a different branch.");
+    }
+    if (fabricIds.length) {
+      const fabricRows = await tx
+        .select({ id: fabrics.id })
+        .from(fabrics)
+        .where(and(inArray(fabrics.id, fabricIds), eq(fabrics.branchId, po.branchId)));
+      if (fabricRows.length !== fabricIds.length) throw new Error("A purchase-order fabric belongs to a different branch.");
+    }
+
+    let retailValue = 0;
+    let fabricValue = 0;
+    for (const line of input.lines) {
+      if (line.receiveQty <= 0) continue;
+      const item = items.find((i) => i.id === line.poItemId);
+      if (!item) throw new Error(`Line ${line.poItemId} not found on this purchase order.`);
+      const remaining = Number(item.quantity) - Number(item.receivedQty);
+      if (line.receiveQty > remaining + 0.001) {
+        throw new Error(`Cannot receive ${line.receiveQty} — only ${remaining} remaining on this line.`);
+      }
+      const value = line.receiveQty * Number(item.unitCost);
+      if (item.variantId) retailValue += value;
+      if (item.fabricId) fabricValue += value;
+    }
+
     for (const line of input.lines) {
       if (line.receiveQty <= 0) continue;
       const item = items.find((i) => i.id === line.poItemId)!;

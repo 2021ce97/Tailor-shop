@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { db, purchaseOrders, suppliers } from "@/lib/db";
 import { eq, desc } from "drizzle-orm";
-import { requireSession } from "@/lib/auth/get-session";
+import { canManagePurchaseOrders, requireSession } from "@/lib/auth/get-session";
+import { notFound } from "next/navigation";
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -15,6 +16,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default async function PurchaseOrdersPage() {
   const session = await requireSession();
+  if (!canManagePurchaseOrders(session)) notFound();
 
   const rows = await db
     .select({

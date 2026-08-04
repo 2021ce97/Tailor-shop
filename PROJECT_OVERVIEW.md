@@ -207,7 +207,7 @@ touches a needle doesn't clutter that list.
 | Area | What's included |
 |---|---|
 | **Retail** | Products, size/color variants (per branch), barcode-ready SKUs, stock movement audit trail, POS checkout, low-stock alerts, printable receipts |
-| **Purchasing** | Purchase orders covering both retail variants and fabric in one order, with partial receiving — creating a PO doesn't touch stock; receiving it does, and posts the accounting entry |
+| **Purchasing** | Branch-secured purchase orders covering retail variants and fabric, with partial receiving, payment history, and supplier-payment postings that reduce Accounts Payable |
 | **Returns** | Look up any sale by number, select what's coming back, refund via cash/bank/store credit — reverses both income and cost, restocks the item; exchanges are a return plus a fresh sale, optionally linked |
 | **Tailoring** | Measurement profiles (flexible per garment type), full order pipeline with stage history, fabric inventory and consumption, alterations, appointments, printable invoices |
 | **Accounting** | Full chart of accounts, double-entry engine with balance-or-throw guards, deferred revenue recognition for tailor orders, ledger, trial balance, profit & loss |
@@ -218,17 +218,13 @@ touches a needle doesn't clutter that list.
 
 ## What's not built yet
 
-- **Paying suppliers** — receiving a purchase order posts what the
-  shop owes to Accounts Payable, but there's no screen yet to record
-  actually paying that down
 - **Staff attendance/payroll** — daily wage is stored per staff
   member, but there's no attendance tracking or payroll run
 - **Barcode scanner integration** — barcodes are stored on variants,
   but POS currently searches by typed name/SKU rather than a scanner
   input
-- **Self-serve shop signup** — this is installed and configured by
-  the shop owner directly (via the seed script and a manually created
-  first user), not a multi-tenant SaaS with its own signup flow
+- **Self-serve shop signup** — intentionally out of scope. This is a
+  single-shop installation configured by the owner, not a multi-tenant SaaS.
 - **Cross-branch report filtering** — Dashboard and the Tailor Orders
   list are scoped to your current working branch, but Ledger, Trial
   Balance, and Reports currently show figures combined across every

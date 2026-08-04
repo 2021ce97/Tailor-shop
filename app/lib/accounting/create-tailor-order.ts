@@ -2,6 +2,7 @@ import {
   db,
   tailorOrders,
   tailorOrderStages,
+  measurementProfiles,
   fabrics,
   fabricMovements,
   transactions,
@@ -79,6 +80,14 @@ export async function createTailorOrder(input: CreateTailorOrderInput) {
   }
 
   return await db.transaction(async (tx) => {
+    if (input.measurementProfileId) {
+      const [profile] = await tx
+        .select({ id: measurementProfiles.id })
+        .from(measurementProfiles)
+        .where(and(eq(measurementProfiles.id, input.measurementProfileId), eq(measurementProfiles.customerId, input.customerId)));
+      if (!profile) throw new Error("The selected measurement profile does not belong to this customer.");
+    }
+
     const [order] = await tx
       .insert(tailorOrders)
       .values({

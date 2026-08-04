@@ -1,22 +1,50 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { db, purchaseOrders, purchaseOrderItems, suppliers, productVariants, products, fabrics } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { db, purchaseOrders, purchaseOrderItems, suppliers, productVariants, products, fabrics, transactions, transactionLines, chartOfAccounts } from "@/lib/db";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getPurchaseOrderOutstandingBalance } from "@/lib/accounting/purchase-orders";
+import { canManagePurchaseOrders, requireSession } from "@/lib/auth/get-session";
 import { ReceiveForm } from "./receive-form";
 import { SupplierPaymentForm } from "./payment-form";
 
 export default async function PurchaseOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await requireSession();
+  if (!canManagePurchaseOrders(session)) notFound();
   const { id } = await params;
   const poId = Number(id);
 
-  const [po] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, poId));
+  const [po] = await db
+    .select()
+    .from(purchaseOrders)
+    .where(and(eq(purchaseOrders.id, poId), eq(purchaseOrders.branchId, session.branchId)));
   if (!po) notFound();
 
-  const [supplier, items, outstandingBalance] = await Promise.all([
+  const [supplier, items, outstandingBalance, paymentHistory] = await Promise.all([
     db.select().from(suppliers).where(eq(suppliers.id, po.supplierId)).then((r) => r[0]),
     db.select().from(purchaseOrderItems).where(eq(purchaseOrderItems.purchaseOrderId, poId)),
     getPurchaseOrderOutstandingBalance(poId),
+    db
+      .select({
+        id: transactions.id,
+        txnNo: transactions.txnNo,
+        txnDate: transactions.txnDate,
+        totalAmount: transactions.totalAmount,
+        notes: transactions.notes,
+        accountCode: chartOfAccounts.accountCode,
+      })
+      .from(transactions)
+      .innerJoin(transactionLines, eq(transactionLines.transactionId, transactions.id))
+      .innerJoin(chartOfAccounts, eq(chartOfAccounts.id, transactionLines.accountId))
+      .where(
+        and(
+          eq(transactions.referenceType, "purchase_order"),
+          eq(transactions.referenceId, poId),
+          eq(transactions.txnType, "supplier_payment"),
+          eq(transactions.status, "posted"),
+          inArray(chartOfAccounts.accountCode, ["1000", "1010"])
+        )
+      )
+      .orderBy(desc(transactions.createdAt)),
   ]);
 
   // Resolve labels for variant/fabric lines
@@ -107,6 +135,33 @@ export default async function PurchaseOrderDetailPage({ params }: { params: Prom
             <div className="text-lg font-semibold text-slate-900">{outstandingBalance.toFixed(2)}</div>
           </div>
         </div>
+
+        {paymentHistory.length > 0 && (
+          <div className="overflow-x-auto border border-slate-100 rounded-md">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-left text-xs font-medium text-slate-500">
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Reference</th>
+                  <th className="px-3 py-2">Method</th>
+                  <th className="px-3 py-2">Notes</th>
+                  <th className="px-3 py-2 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paymentHistory.map((payment) => (
+                  <tr key={payment.id} className="border-t border-slate-100">
+                    <td className="px-3 py-2 text-slate-600">{payment.txnDate}</td>
+                    <td className="px-3 py-2 font-medium text-slate-900">{payment.txnNo}</td>
+                    <td className="px-3 py-2 text-slate-600">{payment.accountCode === "1010" ? "Bank" : "Cash"}</td>
+                    <td className="px-3 py-2 text-slate-600">{payment.notes || "—"}</td>
+                    <td className="px-3 py-2 text-right text-slate-900">{Number(payment.totalAmount).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {outstandingBalance > 0.001 ? <SupplierPaymentForm purchaseOrderId={po.id} outstanding={outstandingBalance} /> : <div className="rounded-md bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800">This purchase order is fully paid.</div>}
       </section>

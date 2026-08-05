@@ -8,18 +8,26 @@ import { db, tailorOrders, tailorOrderStages, tailorOrderPayments, chartOfAccoun
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+// HTML selects submit an empty string when their optional placeholder is
+// selected. Convert it to undefined before number coercion so optional IDs
+// remain optional instead of producing a misleading form-level error.
+const optionalPositiveId = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z.coerce.number().int().positive().optional()
+);
+
 const createSchema = z.object({
   orderNo: z.string().min(1, "Order number is required"),
   orderKind: z.enum(["custom", "alteration"]),
   customerId: z.coerce.number().int().positive("Select a customer"),
-  measurementProfileId: z.coerce.number().int().positive().optional(),
+  measurementProfileId: optionalPositiveId,
   garmentType: z.string().min(1),
-  fabricId: z.coerce.number().int().positive().optional(),
+  fabricId: optionalPositiveId,
   fabricSource: z.enum(["shop", "customer_provided"]),
   fabricQtyUsed: z.coerce.number().min(0).optional(),
   styleNotes: z.string().optional(),
-  assignedTailorId: z.coerce.number().int().positive().optional(),
-  assignedCutterId: z.coerce.number().int().positive().optional(),
+  assignedTailorId: optionalPositiveId,
+  assignedCutterId: optionalPositiveId,
   orderDate: z.string().min(1),
   promisedDate: z.string().optional(),
   stitchingCharge: z.coerce.number().min(0),

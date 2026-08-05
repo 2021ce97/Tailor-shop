@@ -114,6 +114,9 @@ export function TailorOrderForm({
                 </option>
               ))}
             </select>
+            {state.fieldErrors?.measurementProfileId?.[0] && (
+              <span className="text-xs text-red-500">{state.fieldErrors.measurementProfileId[0]}</span>
+            )}
           </label>
           <SearchableSelect name="assignedTailorId" label="Assigned Tailor" options={tailorStaff} />
           <SearchableSelect name="assignedCutterId" label="Assigned Cutter" options={tailorStaff} />

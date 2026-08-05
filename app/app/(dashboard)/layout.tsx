@@ -49,6 +49,7 @@ const nav = [
     section: "Master Data",
     items: [
       { href: "/customers", label: "Customers", icon: Users },
+      { href: "/staff", label: "Staff", icon: Users },
       { href: "/suppliers", label: "Suppliers", icon: Truck },
       { href: "/branches", label: "Branches", icon: Building2 },
     ],

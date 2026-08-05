@@ -212,7 +212,7 @@ touches a needle doesn't clutter that list.
 | **Tailoring** | Measurement profiles (flexible per garment type), full order pipeline with stage history, fabric inventory and consumption, alterations, appointments, printable invoices |
 | **Accounting** | Full chart of accounts, double-entry engine with balance-or-throw guards, deferred revenue recognition for tailor orders, ledger, trial balance, profit & loss |
 | **Multi-branch** | Every branch has its own stock, sales, and orders; staff work in their assigned branch, owners/managers can switch branches from the header |
-| **People** | Customers (with combined measurement + order + purchase history), suppliers, staff with roles and tailor-specific flags |
+| **People** | Customers (with combined measurement + order + purchase history), suppliers, and branch staff management with tailor/cutter assignment flags |
 | **Reports** | P&L, order pipeline, overdue orders, staff workload, top-selling products, low stock |
 | **System** | Login/session auth, shop settings (name, currency, tax rate) |
 

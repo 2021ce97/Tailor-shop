@@ -124,6 +124,7 @@ Visit `http://localhost:3000` → redirects to `/login`.
 - `/fabrics` — fabric stock, restocking
 - `/appointments` — fittings, measurement sessions
 - `/customers`, `/customers/[id]` — customer profiles, measurement profiles, order/purchase history with PDF links
+- `/staff` — owner/manager-only staff management; add tailor/cutter staff for assignment on new tailor orders
 - `/suppliers` — fabric and ready-made goods suppliers
 - `/branches` — add branches (owner/manager only); switch your working branch from the header dropdown
 - `/ledger`, `/trial-balance`, `/reports` — accounting and business reports

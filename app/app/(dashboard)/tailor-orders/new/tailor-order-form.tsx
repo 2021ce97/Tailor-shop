@@ -56,7 +56,14 @@ export function TailorOrderForm({
         </div>
       )}
       {state.status === "error" && state.message && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-800">{state.message}</div>
+        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-800">
+          <p>{state.message}</p>
+          {state.fieldErrors && Object.keys(state.fieldErrors).length > 0 && (
+            <ul className="mt-1 list-disc pl-5 text-xs">
+              {Object.entries(state.fieldErrors).map(([field, errors]) => <li key={field}>{field.replace(/([A-Z])/g, " $1")}: {errors[0]}</li>)}
+            </ul>
+          )}
+        </div>
       )}
 
       <section className="bg-white border border-slate-200 rounded-lg p-5">
@@ -121,6 +128,7 @@ export function TailorOrderForm({
           <SearchableSelect name="assignedTailorId" label="Assigned Tailor" options={tailorStaff} />
           <SearchableSelect name="assignedCutterId" label="Assigned Cutter" options={tailorStaff} />
         </div>
+        {tailorStaff.length === 0 && <p className="text-xs text-amber-700 mt-2">No tailor/cutter staff are available yet. Add them from the Staff page before assigning an order.</p>}
         <p className="text-xs text-slate-400 mt-2">Saved profiles are filtered to the selected customer and attached to the order when chosen.</p>
       </section>
 

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "@/lib/i18n";
+import { AlertTriangle, BarChart3, CheckCircle2, Clock3, DollarSign, WalletCards } from "lucide-react";
 
 interface PLRow { [key: string]: unknown; account_type: string; account_name: string; net_amount: string }
 interface PipelineRow { [key: string]: unknown; current_stage: string; order_kind: string; order_count: number; total_balance_due: string }
@@ -20,6 +21,20 @@ export default async function ReportsPage() {
   const totalIncome = income.reduce((s, r) => s + Number(r.net_amount), 0);
   const totalExpense = expense.reduce((s, r) => s - Number(r.net_amount), 0);
   const netProfit = totalIncome - totalExpense;
+  const pipelineOrderCount = pipelineResult.reduce((sum, row) => sum + Number(row.order_count), 0);
+  const overdueOrderCount = overdueResult.length;
+  const readyOrderCount = pipelineResult
+    .filter((row) => row.current_stage === "ready")
+    .reduce((sum, row) => sum + Number(row.order_count), 0);
+
+  const summaryCards = [
+    { label: t.income, value: totalIncome.toFixed(2), hint: t.profitLoss, icon: DollarSign, className: "bg-[#e33a4b] text-white" },
+    { label: t.expenses, value: totalExpense.toFixed(2), hint: t.expenses, icon: WalletCards, className: "bg-[#10bddd] text-white" },
+    { label: t.netProfit, value: netProfit.toFixed(2), hint: t.profitLoss, icon: BarChart3, className: "bg-[#ef16b5] text-white" },
+    { label: t.ordersInProgress, value: String(pipelineOrderCount), hint: t.orderPipeline, icon: Clock3, className: "bg-[#20a944] text-white" },
+    { label: t.readyForPickup, value: String(readyOrderCount), hint: t.readyForPickupDescription, icon: CheckCircle2, className: "bg-[#138b5d] text-white" },
+    { label: t.overdue, value: String(overdueOrderCount), hint: t.daysLate, icon: AlertTriangle, className: "bg-[#7043c4] text-white" },
+  ];
 
   return (
     <div className="space-y-8">
@@ -27,6 +42,22 @@ export default async function ReportsPage() {
         <h1 className="text-lg font-semibold text-slate-900">{t.reportsPage}</h1>
         <p className="text-sm text-slate-500 mt-0.5">{t.reportsHelp}</p>
       </div>
+
+      <section aria-label={t.reportsPage} className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        {summaryCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.label} className={`min-h-36 rounded-lg p-4 shadow-sm ${card.className}`}>
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-xs font-medium leading-5 text-white/85">{card.label}</span>
+                <Icon className="size-5 shrink-0 text-white/80" aria-hidden="true" />
+              </div>
+              <div className="mt-5 truncate text-2xl font-semibold tracking-tight">{card.value}</div>
+              <div className="mt-1 truncate text-xs text-white/75">{card.hint}</div>
+            </div>
+          );
+        })}
+      </section>
 
       <section>
         <h2 className="text-sm font-semibold text-slate-900 mb-3">{t.profitLoss}</h2>

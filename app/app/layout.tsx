@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import "./globals.css";
+import { getLocale, localeDirections } from "@/lib/i18n";
 
 export const metadata: Metadata = {
-  title: "Clothes & Tailor Shop Management",
-  description: "Retail, custom tailoring, and accounts for a clothing and tailor shop.",
+  title: "Tailor Shop Management",
+  description: "Tailoring orders, customers, measurements, fabrics, and accounts.",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const locale = getLocale((await cookies()).get("tailor_locale")?.value);
+
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang={locale} dir={localeDirections[locale]} className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );

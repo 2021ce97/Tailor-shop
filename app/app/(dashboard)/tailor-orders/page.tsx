@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { db, tailorOrders, customers } from "@/lib/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { requireSession } from "@/lib/auth/get-session";
+import { cookies } from "next/headers";
+import { getLocale, getTranslations } from "@/lib/i18n";
 
 const stageLabels: Record<string, string> = {
   measurement: "Measurement",
@@ -27,8 +29,10 @@ const stageColors: Record<string, string> = {
   cancelled: "bg-red-50 text-red-700",
 };
 
-export default async function TailorOrdersPage() {
+export default async function TailorOrdersPage({ searchParams }: { searchParams?: Promise<{ filter?: string }> }) {
   const session = await requireSession();
+  const filter = (await searchParams)?.filter;
+  const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
   const rows = await db
     .select({
       id: tailorOrders.id,
@@ -44,7 +48,12 @@ export default async function TailorOrdersPage() {
     })
     .from(tailorOrders)
     .leftJoin(customers, eq(customers.id, tailorOrders.customerId))
-    .where(eq(tailorOrders.branchId, session.branchId))
+    .where(and(
+      eq(tailorOrders.branchId, session.branchId),
+      filter === "ready" ? eq(tailorOrders.currentStage, "ready") :
+      filter === "in_progress" ? eq(tailorOrders.status, "in_progress") :
+      filter === "overdue" ? sql`${tailorOrders.promisedDate} < CURRENT_DATE AND ${tailorOrders.status} = 'in_progress'` : undefined,
+    ))
     .orderBy(desc(tailorOrders.createdAt))
     .limit(100);
 
@@ -52,11 +61,11 @@ export default async function TailorOrdersPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Tailor Orders — {session.branchName}</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Most recent 100 orders across both custom garments and alterations.</p>
+          <h1 className="text-lg font-semibold text-slate-900">{t.allOrders} — {session.branchName}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{filter === "ready" ? t.readyForPickupDescription : filter === "overdue" ? t.pastPromisedDate : t.noOrders}</p>
         </div>
         <Link href="/tailor-orders/new" className="text-sm rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
-          + New Order
+          + {t.newOrder}
         </Link>
       </div>
 
@@ -64,14 +73,7 @@ export default async function TailorOrdersPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
-              <th className="px-4 py-2.5">Order No</th>
-              <th className="px-4 py-2.5">Customer</th>
-              <th className="px-4 py-2.5">Kind</th>
-              <th className="px-4 py-2.5">Garment</th>
-              <th className="px-4 py-2.5">Promised</th>
-              <th className="px-4 py-2.5">Stage</th>
-              <th className="px-4 py-2.5 text-right">Total</th>
-              <th className="px-4 py-2.5 text-right">Balance Due</th>
+              <th className="px-4 py-2.5">{t.orderId}</th><th className="px-4 py-2.5">{t.customer}</th><th className="px-4 py-2.5">{t.kind}</th><th className="px-4 py-2.5">{t.garment}</th><th className="px-4 py-2.5">{t.promisedDate}</th><th className="px-4 py-2.5">{t.stage}</th><th className="px-4 py-2.5 text-right">{t.total}</th><th className="px-4 py-2.5 text-right">{t.balanceDue}</th>
               <th className="px-4 py-2.5"></th>
             </tr>
           </thead>
@@ -79,7 +81,7 @@ export default async function TailorOrdersPage() {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-4 py-10 text-center text-slate-400">
-                  No orders yet.
+                  {t.noOrders}
                 </td>
               </tr>
             )}
@@ -103,7 +105,7 @@ export default async function TailorOrdersPage() {
                 <td className="px-4 py-2.5 text-right font-medium text-slate-900">{Number(o.balanceDue).toFixed(2)}</td>
                 <td className="px-4 py-2.5 text-right">
                   <a href={`/api/tailor-orders/${o.id}/pdf`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-900 underline">
-                    PDF
+                    {t.pdf}
                   </a>
                 </td>
               </tr>

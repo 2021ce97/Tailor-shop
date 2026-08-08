@@ -18,6 +18,7 @@ export interface InvoicePdfInput {
   shopAddress?: string;
   shopPhone?: string;
   shopEmail?: string;
+  logoUrl?: string;
 
   documentTypeLabel: string; // "Sales Receipt", "Tailor Order Invoice"
   documentNo: string;
@@ -67,6 +68,32 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
   const amber700 = rgb(0.57, 0.25, 0.02);
   const amber50 = rgb(1, 0.97, 0.9);
 
+  const drawWrapped = (text: string, x: number, startY: number, maxWidth: number, size: number, fontFace = font, color = slate900) => {
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let line = "";
+    for (const word of words) {
+      const candidate = line ? `${line} ${word}` : word;
+      if (fontFace.widthOfTextAtSize(candidate, size) <= maxWidth) line = candidate;
+      else if (line) { lines.push(line); line = word; }
+      else lines.push(word.slice(0, Math.max(1, Math.floor(maxWidth / (size * 0.55)))));
+    }
+    if (line) lines.push(line);
+    lines.forEach((value, index) => page.drawText(value, { x, y: startY - index * (size + 3), size, font: fontFace, color }));
+    return Math.max(1, lines.length) * (size + 3);
+  };
+
+  if (input.logoUrl) {
+    try {
+      const response = await fetch(input.logoUrl);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      const image = /\.jpe?g($|\?)/i.test(input.logoUrl) ? await pdfDoc.embedJpg(bytes) : await pdfDoc.embedPng(bytes);
+      page.drawImage(image, { x: MARGIN, y: PAGE_HEIGHT - MARGIN - 42, width: 42, height: 42 });
+    } catch {
+      // Keep the invoice usable when a configured logo URL is unavailable.
+    }
+  }
+
   function ensureSpace(needed: number) {
     if (y - needed < MARGIN + 60) {
       page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
@@ -75,15 +102,16 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
   }
 
   // --- Header ---
-  page.drawText(input.shopName, { x: MARGIN, y, size: 18, font: fontBold, color: slate900 });
+  const brandX = input.logoUrl ? MARGIN + 52 : MARGIN;
+  page.drawText(input.shopName, { x: brandX, y, size: 18, font: fontBold, color: slate900 });
   y -= 16;
   if (input.shopAddress) {
-    page.drawText(input.shopAddress, { x: MARGIN, y, size: 9, font, color: slate600 });
+    page.drawText(input.shopAddress.slice(0, 90), { x: brandX, y, size: 9, font, color: slate600 });
     y -= 12;
   }
   const contactBits = [input.shopPhone, input.shopEmail].filter(Boolean).join("  ·  ");
   if (contactBits) {
-    page.drawText(contactBits, { x: MARGIN, y, size: 9, font, color: slate600 });
+    page.drawText(contactBits.slice(0, 90), { x: brandX, y, size: 9, font, color: slate600 });
   }
 
   const rightX = PAGE_WIDTH - MARGIN;
@@ -99,14 +127,14 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
   rightText(input.documentDate, 10);
   rightText(input.status.toUpperCase(), 9, false, input.status === "completed" || input.status === "delivered" || input.status === "posted" ? emerald700 : slate400);
 
-  y -= 26;
+  y = Math.min(y, ry) - 20;
   page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE_WIDTH - MARGIN, y }, thickness: 1, color: slate100 });
   y -= 24;
 
   // --- Party block ---
   page.drawText(input.partyLabel.toUpperCase(), { x: MARGIN, y, size: 8, font: fontBold, color: slate400 });
   y -= 14;
-  page.drawText(input.partyName, { x: MARGIN, y, size: 12, font: fontBold, color: slate900 });
+  y -= drawWrapped(input.partyName, MARGIN, y, 220, 12, fontBold, slate900);
   y -= 15;
   for (const line of [input.partyPhone, input.partyEmail].filter(Boolean) as string[]) {
     page.drawText(line, { x: MARGIN, y, size: 9, font, color: slate600 });
@@ -123,7 +151,7 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
       const x = MARGIN + col * colWidth;
       if (col === 0) rowStartY = y;
       page.drawText(f.label.toUpperCase(), { x, y: rowStartY, size: 7, font: fontBold, color: slate400 });
-      page.drawText(f.value || "—", { x, y: rowStartY - 11, size: 9, font, color: slate900 });
+      drawWrapped(f.value || "—", x, rowStartY - 11, colWidth - 12, 9, font, slate900);
       col++;
       if (col === 3) {
         col = 0;
@@ -146,13 +174,13 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
 
   for (const item of input.lineItems) {
     ensureSpace(28);
-    page.drawText(item.label, { x: MARGIN, y, size: 10, font, color: slate900 });
+    page.drawText(item.label.slice(0, 55), { x: MARGIN, y, size: 10, font, color: slate900 });
     const amountStr = money(item.amount, input.currencyCode);
     const amountW = fontBold.widthOfTextAtSize(amountStr, 10);
     page.drawText(amountStr, { x: PAGE_WIDTH - MARGIN - amountW, y, size: 10, font: fontBold, color: slate900 });
     y -= 13;
     if (item.detail) {
-      page.drawText(item.detail, { x: MARGIN, y, size: 8, font, color: slate600 });
+      page.drawText(item.detail.slice(0, 75), { x: MARGIN, y, size: 8, font, color: slate600 });
       y -= 13;
     }
     y -= 5;
@@ -201,7 +229,7 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
     ensureSpace(40);
     page.drawText("NOTES", { x: MARGIN, y, size: 8, font: fontBold, color: slate400 });
     y -= 12;
-    page.drawText(input.notes.slice(0, 200), { x: MARGIN, y, size: 9, font, color: slate600 });
+    drawWrapped(input.notes.slice(0, 200), MARGIN, y, PAGE_WIDTH - 2 * MARGIN, 9, font, slate600);
     y -= 20;
   }
 

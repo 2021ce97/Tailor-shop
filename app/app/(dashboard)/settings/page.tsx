@@ -18,6 +18,7 @@ export default async function SettingsPage() {
         email={shop?.email ?? null}
         currency={shop?.currency ?? "PKR"}
         taxPercent={shop?.taxPercent ?? "0"}
+        logoUrl={shop?.logoUrl ?? null}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { db, customers, measurementProfiles, tailorOrders, sales } from "@/lib/db";
+import { db, customers, measurementProfiles, measurementTemplates, tailorOrders } from "@/lib/db";
 import { eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { MeasurementForm } from "./measurement-form";
@@ -11,11 +11,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const [customer] = await db.select().from(customers).where(eq(customers.id, customerId));
   if (!customer) notFound();
 
-  const [profiles, orders, saleRows] = await Promise.all([
+  const [profiles, orders, templateRows] = await Promise.all([
     db.select().from(measurementProfiles).where(eq(measurementProfiles.customerId, customerId)).orderBy(desc(measurementProfiles.createdAt)),
     db.select().from(tailorOrders).where(eq(tailorOrders.customerId, customerId)).orderBy(desc(tailorOrders.createdAt)).limit(20),
-    db.select().from(sales).where(eq(sales.customerId, customerId)).orderBy(desc(sales.createdAt)).limit(20),
+    db.select().from(measurementTemplates).orderBy(desc(measurementTemplates.createdAt)),
   ]);
+  const templates = Object.fromEntries(templateRows.map((template) => [template.garmentType, template.fields as string[]]));
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -25,7 +26,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </Link>
         <h1 className="text-lg font-semibold text-slate-900 mt-1">{customer.name}</h1>
         <p className="text-sm text-slate-500 mt-0.5">
-          {[customer.phone, customer.email].filter(Boolean).join(" · ") || "No contact info on file"}
+          {customer.phone || "No contact number on file"}
         </p>
       </div>
 
@@ -57,7 +58,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             </div>
           ))}
         </div>
-        <MeasurementForm customerId={customerId} />
+        <MeasurementForm customerId={customerId} templates={templates} />
       </section>
 
       <section>
@@ -103,42 +104,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
       </section>
 
-      <section>
-        <h2 className="text-sm font-semibold text-slate-900 mb-3">Retail Purchases</h2>
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
-                <th className="px-4 py-2">Sale No</th>
-                <th className="px-4 py-2">Date</th>
-                <th className="px-4 py-2 text-right">Total</th>
-                <th className="px-4 py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {saleRows.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
-                    No retail purchases yet.
-                  </td>
-                </tr>
-              )}
-              {saleRows.map((s) => (
-                <tr key={s.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-4 py-2 font-medium text-slate-900">{s.saleNo}</td>
-                  <td className="px-4 py-2 text-slate-600">{s.saleDate}</td>
-                  <td className="px-4 py-2 text-right text-slate-900">{Number(s.totalAmount).toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right">
-                    <a href={`/api/sales/${s.id}/pdf`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-900 underline">
-                      PDF
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
     </div>
   );
 }

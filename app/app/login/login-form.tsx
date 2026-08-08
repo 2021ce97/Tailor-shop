@@ -3,10 +3,11 @@
 import { useActionState } from "react";
 import { login, type LoginFormState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
+import type { TranslationSet } from "@/lib/i18n";
 
 const initialState: LoginFormState = { status: "idle" };
 
-export function LoginForm() {
+export function LoginForm({ translations: t }: { translations: TranslationSet }) {
   const [state, formAction, isPending] = useActionState(login, initialState);
 
   return (
@@ -18,7 +19,7 @@ export function LoginForm() {
       )}
 
       <label className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-slate-600">Email</span>
+        <span className="text-xs font-medium text-slate-600">{t.email}</span>
         <input
           name="email"
           type="email"
@@ -30,7 +31,7 @@ export function LoginForm() {
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-slate-600">Password</span>
+        <span className="text-xs font-medium text-slate-600">{t.password}</span>
         <input
           name="password"
           type="password"
@@ -44,7 +45,7 @@ export function LoginForm() {
       </label>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Signing in…" : "Sign in"}
+        {isPending ? t.signingIn : t.signIn}
       </Button>
     </form>
   );

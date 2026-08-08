@@ -19,7 +19,7 @@ export default async function AppointmentsPage() {
       })
       .from(appointments)
       .innerJoin(customers, eq(customers.id, appointments.customerId))
-      .where(and(gte(appointments.scheduledAt, new Date(Date.now() - 24 * 60 * 60 * 1000)), eq(appointments.branchId, session.branchId)))
+      .where(and(gte(appointments.scheduledAt, new Date(new Date().getTime() - 24 * 60 * 60 * 1000)), eq(appointments.branchId, session.branchId)))
       .orderBy(asc(appointments.scheduledAt))
       .limit(50),
   ]);

@@ -7,8 +7,7 @@ import { revalidatePath } from "next/cache";
 
 const customerSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().min(1, "Contact number is required"),
   address: z.string().optional(),
 });
 
@@ -30,7 +29,6 @@ export async function createCustomer(_prevState: CustomerFormState, formData: Fo
     await db.insert(customers).values({
       name: parsed.data.name,
       phone: parsed.data.phone || null,
-      email: parsed.data.email || null,
       address: parsed.data.address || null,
     });
 

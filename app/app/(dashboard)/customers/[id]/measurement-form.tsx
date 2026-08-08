@@ -5,6 +5,7 @@ import { createMeasurementProfile, type MeasurementFormState } from "@/app/actio
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/shared/field";
 import { Plus, Trash2 } from "lucide-react";
+import { MeasurementTemplateManager } from "@/components/orders/measurement-template-manager";
 
 const initialState: MeasurementFormState = { status: "idle" };
 
@@ -27,18 +28,18 @@ interface MeasurementField {
   value: string;
 }
 
-export function MeasurementForm({ customerId }: { customerId: number }) {
+export function MeasurementForm({ customerId, templates = {} }: { customerId: number; templates?: Record<string, string[]> }) {
   const [state, formAction, isPending] = useActionState(createMeasurementProfile, initialState);
   const [garmentType, setGarmentType] = useState<GarmentType>("shirt");
-  const [fields, setFields] = useState<MeasurementField[]>(() => garmentTemplates.shirt.fields.map((k) => ({ key: k, value: "" })));
+  const [fields, setFields] = useState<MeasurementField[]>(() => (templates.shirt ?? [...garmentTemplates.shirt.fields]).map((k) => ({ key: k, value: "" })));
 
   function changeGarmentType(type: GarmentType) {
     setGarmentType(type);
-    setFields(garmentTemplates[type].fields.map((k) => ({ key: k, value: "" })));
+    setFields((templates[type] ?? [...garmentTemplates[type].fields]).map((k) => ({ key: k, value: "" })));
   }
 
   function resetTemplate() {
-    setFields(garmentTemplates[garmentType].fields.map((k) => ({ key: k, value: "" })));
+    setFields((templates[garmentType] ?? [...garmentTemplates[garmentType].fields]).map((k) => ({ key: k, value: "" })));
   }
 
   function updateField(index: number, patch: Partial<MeasurementField>) {
@@ -95,7 +96,7 @@ export function MeasurementForm({ customerId }: { customerId: number }) {
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium text-slate-600">Measurements (in inches, or your shop's unit)</span>
+          <span className="text-xs font-medium text-slate-600">Measurements (in inches, or your shop&apos;s unit)</span>
           <div className="flex items-center gap-2">
             <button type="button" onClick={resetTemplate} className="text-xs font-medium text-slate-500 hover:text-slate-900">
               Reset template
@@ -128,8 +129,9 @@ export function MeasurementForm({ customerId }: { customerId: number }) {
               </button>
             </div>
           ))}
-          {fields.length === 0 && <p className="text-xs text-slate-400">No fields yet — click "Add field".</p>}
+          {fields.length === 0 && <p className="text-xs text-slate-400">No fields yet — click &quot;Add field&quot;.</p>}
         </div>
+        <MeasurementTemplateManager garmentType={garmentType} fields={fields.map((field) => field.key).filter(Boolean)} />
       </div>
 
       <Field label="Notes" name="notes" placeholder="Fit preferences, special instructions…" />

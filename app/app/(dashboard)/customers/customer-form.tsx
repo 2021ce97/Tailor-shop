@@ -4,15 +4,16 @@ import { useActionState } from "react";
 import { createCustomer, type CustomerFormState } from "@/app/actions/customers";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/shared/field";
+import type { TranslationSet } from "@/lib/i18n";
 
 const initialState: CustomerFormState = { status: "idle" };
 
-export function CustomerForm() {
+export function CustomerForm({ translations: t }: { translations: TranslationSet }) {
   const [state, formAction, isPending] = useActionState(createCustomer, initialState);
 
   return (
     <form action={formAction} className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
-      <h2 className="text-sm font-semibold text-slate-900">New Customer</h2>
+      <h2 className="text-sm font-semibold text-slate-900">{t.newCustomer}</h2>
 
       {state.status === "success" && (
         <div className="rounded-md bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm text-emerald-800">
@@ -24,15 +25,14 @@ export function CustomerForm() {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Name" name="name" required error={state.fieldErrors?.name} />
-        <Field label="Phone" name="phone" />
-        <Field label="Email" name="email" type="email" error={state.fieldErrors?.email} />
+        <Field label={t.name} name="name" required error={state.fieldErrors?.name} />
+        <Field label={t.contactNumber} name="phone" type="tel" required error={state.fieldErrors?.phone} />
       </div>
-      <Field label="Address" name="address" />
+      <Field label={t.address} name="address" />
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Add Customer"}
+          {isPending ? t.saving : t.addCustomer}
         </Button>
       </div>
     </form>

@@ -4,10 +4,15 @@ import { db, tailorOrders, tailorOrderStages, customers, users, fabrics, tailorO
 import { eq, desc } from "drizzle-orm";
 import { StageAdvancer } from "./stage-advancer";
 import { RecordPaymentForm, DeliverOrderForm } from "./order-payment-forms";
+import { cookies } from "next/headers";
+import { getLocale, getTranslations } from "@/lib/i18n";
+import { requireSession } from "@/lib/auth/get-session";
 
 export default async function TailorOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const orderId = Number(id);
+  const session = await requireSession();
+  const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
 
   const [order] = await db.select().from(tailorOrders).where(eq(tailorOrders.id, orderId));
   if (!order) notFound();
@@ -51,14 +56,19 @@ export default async function TailorOrderDetailPage({ params }: { params: Promis
           {" · "}
           {order.orderKind} {order.garmentType}
         </p>
+        {order.currentStage === "ready" && order.status === "in_progress" && (
+          <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {t.readyOrderNotice}
+          </div>
+        )}
       </div>
 
       <section className="bg-white border border-slate-200 rounded-lg p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900">Current Stage: <span className="capitalize">{order.currentStage.replace(/_/g, " ")}</span></h2>
-          {!isDelivered && !isCancelled && <StageAdvancer tailorOrderId={order.id} currentStage={order.currentStage} />}
+          {!isDelivered && !isCancelled && <StageAdvancer tailorOrderId={order.id} currentStage={order.currentStage} isOwner={session.roleName === "owner"} />}
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 grid grid-cols-1 gap-2 border-s-2 border-slate-200 ps-4">
           {stages.map((s) => (
             <div key={s.id} className="flex items-center justify-between text-sm border-b border-slate-50 last:border-0 pb-2">
               <span className="capitalize text-slate-700">{s.stage.replace(/_/g, " ")}</span>

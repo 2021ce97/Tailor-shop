@@ -2,34 +2,34 @@ import Link from "next/link";
 import { db, customers } from "@/lib/db";
 import { desc } from "drizzle-orm";
 import { CustomerForm } from "./customer-form";
+import { cookies } from "next/headers";
+import { getLocale, getTranslations } from "@/lib/i18n";
 
 export default async function CustomersPage() {
   const rows = await db.select().from(customers).orderBy(desc(customers.createdAt)).limit(100);
+  const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">Customers</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Click a customer to view or add their measurement profiles.</p>
+        <h1 className="text-lg font-semibold text-slate-900">{t.customersPage}</h1>
+        <p className="text-sm text-slate-500 mt-0.5">{t.customerHelp}</p>
       </div>
 
-      <CustomerForm />
+      <CustomerForm translations={t} />
 
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
-              <th className="px-4 py-2.5">Name</th>
-              <th className="px-4 py-2.5">Phone</th>
-              <th className="px-4 py-2.5">Email</th>
-              <th className="px-4 py-2.5">Status</th>
+              <th className="px-4 py-2.5">{t.name}</th><th className="px-4 py-2.5">{t.phone}</th><th className="px-4 py-2.5">{t.status}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-slate-400">
-                  No customers yet.
+                <td colSpan={3} className="px-4 py-10 text-center text-slate-400">
+                  {t.noCustomers}
                 </td>
               </tr>
             )}
@@ -41,7 +41,6 @@ export default async function CustomersPage() {
                   </Link>
                 </td>
                 <td className="px-4 py-2.5 text-slate-600">{c.phone ?? "—"}</td>
-                <td className="px-4 py-2.5 text-slate-600">{c.email ?? "—"}</td>
                 <td className="px-4 py-2.5 text-slate-600 capitalize">{c.status}</td>
               </tr>
             ))}

@@ -1,8 +1,6 @@
 import Link from "next/link";
 import {
   LayoutDashboard,
-  ShoppingCart,
-  Package,
   Scissors,
   Ruler,
   Calendar,
@@ -13,57 +11,14 @@ import {
   TrendingUp,
   Settings,
   LogOut,
-  Shirt,
-  Building2,
-  ClipboardList,
-  Undo2,
 } from "lucide-react";
 import { requireSession } from "@/lib/auth/get-session";
 import { logout } from "@/app/actions/auth";
-import { db, shopSettings, branches as branchesTable } from "@/lib/db";
+import { db, shopSettings } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { BranchSwitcher } from "./branch-switcher";
-
-const nav = [
-  { section: "Overview", items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }] },
-  {
-    section: "Retail (POS)",
-    items: [
-      { href: "/pos", label: "New Sale", icon: ShoppingCart },
-      { href: "/sale-returns", label: "Returns / Exchanges", icon: Undo2 },
-      { href: "/products", label: "Products", icon: Shirt },
-      { href: "/inventory", label: "Inventory / Stock", icon: Package },
-      { href: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
-    ],
-  },
-  {
-    section: "Tailoring",
-    items: [
-      { href: "/tailor-orders/new", label: "New Order", icon: Scissors },
-      { href: "/tailor-orders", label: "All Orders", icon: Scissors },
-      { href: "/fabrics", label: "Fabric Inventory", icon: Ruler },
-      { href: "/appointments", label: "Appointments", icon: Calendar },
-    ],
-  },
-  {
-    section: "Master Data",
-    items: [
-      { href: "/customers", label: "Customers", icon: Users },
-      { href: "/staff", label: "Staff", icon: Users },
-      { href: "/suppliers", label: "Suppliers", icon: Truck },
-      { href: "/branches", label: "Branches", icon: Building2 },
-    ],
-  },
-  {
-    section: "Accounts",
-    items: [
-      { href: "/ledger", label: "Ledger", icon: BookOpen },
-      { href: "/trial-balance", label: "Trial Balance", icon: Scale },
-      { href: "/reports", label: "Reports", icon: TrendingUp },
-    ],
-  },
-  { section: "System", items: [{ href: "/settings", label: "Settings", icon: Settings }] },
-];
+import { cookies } from "next/headers";
+import { getLocale, getTranslations } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
@@ -71,13 +26,33 @@ function initials(name: string) {
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
+  const locale = getLocale((await cookies()).get("tailor_locale")?.value);
+  const t = getTranslations(locale);
 
   const [shop] = await db.select({ shopName: shopSettings.shopName }).from(shopSettings).where(eq(shopSettings.id, 1));
 
-  const canSwitchBranch = session.roleName === "owner" || session.roleName === "manager";
-  const branchList = canSwitchBranch
-    ? await db.select({ id: branchesTable.id, name: branchesTable.name }).from(branchesTable).where(eq(branchesTable.status, "active"))
-    : [];
+  const localizedNav = [
+    { section: t.overview, items: [{ href: "/dashboard", label: t.dashboard, icon: LayoutDashboard }] },
+    {
+      section: t.tailoring,
+      items: [
+        { href: "/tailor-orders/new", label: t.newOrder, icon: Scissors },
+        { href: "/tailor-orders", label: t.allOrders, icon: Scissors },
+        { href: "/fabrics", label: t.fabricInventory, icon: Ruler },
+        { href: "/appointments", label: t.appointments, icon: Calendar },
+      ],
+    },
+    { section: t.masterData, items: [{ href: "/customers", label: t.customers, icon: Users }, { href: "/suppliers", label: t.suppliers, icon: Truck }] },
+    {
+      section: t.accounts,
+      items: [
+        { href: "/ledger", label: t.ledger, icon: BookOpen },
+        { href: "/trial-balance", label: t.trialBalance, icon: Scale },
+        { href: "/reports", label: t.reports, icon: TrendingUp },
+      ],
+    },
+    { section: t.system, items: [{ href: "/settings", label: t.settings, icon: Settings }] },
+  ];
 
   return (
     <div className="flex min-h-screen">
@@ -89,7 +64,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <span className="font-semibold text-slate-900 tracking-tight">{shop?.shopName ?? "Tailor Shop"}</span>
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
-          {nav.map((group) => (
+          {localizedNav.map((group) => (
             <div key={group.section}>
               <div className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 {group.section}
@@ -116,12 +91,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500 capitalize">{session.roleName}</span>
-            {canSwitchBranch ? (
-              <BranchSwitcher branches={branchList} currentBranchId={session.branchId} />
-            ) : (
-              <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-500">{session.branchName}</span>
-            )}
+            <span className="text-sm text-slate-500">{t.tailoringWorkspace}</span>
+            <LanguageSwitcher locale={locale} label={t.language} />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-500">{session.name}</span>
@@ -129,7 +100,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               {initials(session.name)}
             </div>
             <form action={logout}>
-              <button type="submit" className="text-slate-400 hover:text-slate-700 transition-colors" title="Sign out">
+              <button type="submit" className="text-slate-400 hover:text-slate-700 transition-colors" title={t.signOut}>
                 <LogOut className="size-4" />
               </button>
             </form>

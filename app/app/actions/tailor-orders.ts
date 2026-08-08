@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createTailorOrder } from "@/lib/accounting/create-tailor-order";
 import { deliverTailorOrder } from "@/lib/accounting/deliver-tailor-order";
 import { requireSession } from "@/lib/auth/get-session";
-import { db, tailorOrders, tailorOrderStages, tailorOrderPayments, chartOfAccounts, transactions, transactionLines } from "@/lib/db";
+import { db, customers, shopSettings, tailorOrders, tailorOrderStages, tailorOrderPayments, chartOfAccounts, transactions, transactionLines } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -17,17 +17,17 @@ const optionalPositiveId = z.preprocess(
 );
 
 const createSchema = z.object({
-  orderNo: z.string().min(1, "Order number is required"),
+  orderNo: z.string().optional(),
   orderKind: z.enum(["custom", "alteration"]),
-  customerId: z.coerce.number().int().positive("Select a customer"),
+  customerId: optionalPositiveId,
+  newCustomerName: z.string().optional(),
+  newCustomerPhone: z.string().optional(),
   measurementProfileId: optionalPositiveId,
   garmentType: z.string().min(1),
   fabricId: optionalPositiveId,
   fabricSource: z.enum(["shop", "customer_provided"]),
   fabricQtyUsed: z.coerce.number().min(0).optional(),
   styleNotes: z.string().optional(),
-  assignedTailorId: optionalPositiveId,
-  assignedCutterId: optionalPositiveId,
   orderDate: z.string().min(1),
   promisedDate: z.string().optional(),
   stitchingCharge: z.coerce.number().min(0),
@@ -55,7 +55,21 @@ export async function submitTailorOrder(_prevState: TailorOrderFormState, formDa
   const session = await requireSession();
 
   try {
-    const order = await createTailorOrder({ ...parsed.data, branchId: session.branchId, createdBy: session.userId });
+    const [shop] = await db.select({ orderPrefix: shopSettings.orderPrefix }).from(shopSettings).where(eq(shopSettings.id, 1));
+    const prefix = (shop?.orderPrefix || "ORD").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+    const orderNo = `${prefix}-${timestamp}-${Math.floor(Math.random() * 900 + 100)}`;
+    let customerId = parsed.data.customerId;
+    if (!customerId && parsed.data.newCustomerName?.trim() && parsed.data.newCustomerPhone?.trim()) {
+      const [existing] = await db.select({ id: customers.id }).from(customers).where(eq(customers.phone, parsed.data.newCustomerPhone.trim())).limit(1);
+      if (existing) customerId = existing.id;
+      else {
+        const [customer] = await db.insert(customers).values({ name: parsed.data.newCustomerName.trim(), phone: parsed.data.newCustomerPhone.trim() }).returning({ id: customers.id });
+        customerId = customer.id;
+      }
+    }
+    if (!customerId) return { status: "error", message: "Select an existing customer or enter a new customer's name and contact number." };
+    const order = await createTailorOrder({ ...parsed.data, orderNo, customerId, branchId: session.branchId, createdBy: session.userId });
     revalidatePath("/tailor-orders");
     return { status: "success", message: `Order ${order.orderNo} created.`, orderId: order.id };
   } catch (err) {
@@ -73,6 +87,8 @@ export async function advanceOrderStage(formData: FormData): Promise<void> {
   const parsed = stageSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return;
   const session = await requireSession();
+  const [order] = await db.select({ id: tailorOrders.id, status: tailorOrders.status }).from(tailorOrders).where(eq(tailorOrders.id, parsed.data.tailorOrderId));
+  if (!order || order.status === "delivered" || order.status === "cancelled") return;
 
   await db.transaction(async (tx) => {
     await tx.insert(tailorOrderStages).values({
@@ -86,6 +102,20 @@ export async function advanceOrderStage(formData: FormData): Promise<void> {
 
   revalidatePath(`/tailor-orders/${parsed.data.tailorOrderId}`);
   revalidatePath("/tailor-orders");
+}
+
+export async function setOrderStage(formData: FormData): Promise<void> {
+  const parsed = stageSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return;
+  const session = await requireSession();
+  if (session.roleName !== "owner") return;
+  await db.transaction(async (tx) => {
+    await tx.insert(tailorOrderStages).values({ tailorOrderId: parsed.data.tailorOrderId, stage: parsed.data.stage, notes: "Stage adjusted by owner", changedBy: session.userId });
+    await tx.update(tailorOrders).set({ currentStage: parsed.data.stage, updatedAt: new Date() }).where(eq(tailorOrders.id, parsed.data.tailorOrderId));
+  });
+  revalidatePath(`/tailor-orders/${parsed.data.tailorOrderId}`);
+  revalidatePath("/tailor-orders");
+  revalidatePath("/dashboard");
 }
 
 const paymentSchema = z.object({

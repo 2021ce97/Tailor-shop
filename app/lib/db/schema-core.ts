@@ -89,6 +89,15 @@ export const measurementProfiles = pgTable("measurement_profiles", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const measurementTemplates = pgTable("measurement_templates", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  garmentType: varchar("garment_type", { length: 50 }).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  fields: jsonb("fields").notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const suppliers = pgTable("suppliers", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   supplierCode: varchar("supplier_code", { length: 30 }).unique(),

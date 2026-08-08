@@ -45,7 +45,7 @@ export function DeliverOrderForm({ tailorOrderId, balanceDue }: { tailorOrderId:
   return (
     <form action={formAction} className="bg-white border border-slate-200 rounded-lg p-5 space-y-3">
       <h3 className="text-sm font-semibold text-slate-900">Mark Delivered</h3>
-      <p className="text-xs text-slate-400">This posts the order's income and any fabric cost.</p>
+      <p className="text-xs text-slate-400">This posts the order&apos;s income and any fabric cost.</p>
       {state.status === "success" && <div className="rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-800">{state.message}</div>}
       {state.status === "error" && state.message && <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">{state.message}</div>}
       <input type="hidden" name="tailorOrderId" value={tailorOrderId} />

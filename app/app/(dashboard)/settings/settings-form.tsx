@@ -14,6 +14,7 @@ export function SettingsForm({
   email,
   currency,
   taxPercent,
+  logoUrl,
 }: {
   shopName: string;
   address: string | null;
@@ -21,6 +22,7 @@ export function SettingsForm({
   email: string | null;
   currency: string;
   taxPercent: string;
+  logoUrl: string | null;
 }) {
   const [state, formAction, isPending] = useActionState(updateShopSettings, initialState);
 
@@ -34,6 +36,7 @@ export function SettingsForm({
         <Field label="Email" name="email" type="email" defaultValue={email ?? ""} error={state.fieldErrors?.email} />
         <Field label="Currency" name="currency" defaultValue={currency} />
         <Field label="Tax Percent" name="taxPercent" type="number" step="0.01" defaultValue={taxPercent} />
+        <Field label="Logo URL (PNG or JPG)" name="logoUrl" type="url" defaultValue={logoUrl ?? ""} />
       </div>
       <Field label="Address" name="address" defaultValue={address ?? ""} />
       <div className="flex justify-end">

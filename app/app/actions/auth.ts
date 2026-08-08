@@ -28,23 +28,29 @@ export async function login(_prevState: LoginFormState, formData: FormData): Pro
 
   const { email, password } = parsed.data;
 
-  const [row] = await db
-    .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      passwordHash: users.passwordHash,
-      status: users.status,
-      roleId: users.roleId,
-      roleName: roles.name,
-      branchId: users.branchId,
-      branchName: branches.name,
-    })
-    .from(users)
-    .innerJoin(roles, eq(roles.id, users.roleId))
-    .innerJoin(branches, eq(branches.id, users.branchId))
-    .where(and(eq(users.email, email), eq(users.status, "active")))
-    .limit(1);
+  let row;
+  try {
+    [row] = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        passwordHash: users.passwordHash,
+        status: users.status,
+        roleId: users.roleId,
+        roleName: roles.name,
+        branchId: users.branchId,
+        branchName: branches.name,
+      })
+      .from(users)
+      .innerJoin(roles, eq(roles.id, users.roleId))
+      .innerJoin(branches, eq(branches.id, users.branchId))
+      .where(and(eq(users.email, email), eq(users.status, "active")))
+      .limit(1);
+  } catch (error) {
+    console.error("Login database query failed", error);
+    return { status: "error", message: "Login is not initialized. Run migration 010, then run create-user.js." };
+  }
 
   if (!row) {
     return { status: "error", message: "Invalid email or password." };

@@ -31,6 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     shopAddress: shop?.address ?? undefined,
     shopPhone: shop?.phone ?? undefined,
     shopEmail: shop?.email ?? undefined,
+    logoUrl: shop?.logoUrl ?? undefined,
 
     documentTypeLabel: order.orderKind === "alteration" ? "Alteration Invoice" : "Tailor Order Invoice",
     documentNo: order.orderNo,

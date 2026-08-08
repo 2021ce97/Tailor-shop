@@ -13,6 +13,7 @@ const settingsSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   currency: z.string().min(1).default("PKR"),
   taxPercent: z.coerce.number().min(0).max(100).default(0),
+  logoUrl: z.string().url().optional().or(z.literal("")),
 });
 
 export type SettingsFormState = { status: "idle" | "success" | "error"; message?: string; fieldErrors?: Record<string, string[]> };
@@ -35,6 +36,7 @@ export async function updateShopSettings(_prevState: SettingsFormState, formData
         email: parsed.data.email || null,
         currency: parsed.data.currency,
         taxPercent: String(parsed.data.taxPercent),
+        logoUrl: parsed.data.logoUrl || null,
         updatedAt: new Date(),
       })
       .where(eq(shopSettings.id, 1));

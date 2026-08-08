@@ -1,13 +1,23 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const bcrypt = require('bcryptjs');
 const postgres = require('postgres');
+const fs = require('fs');
+const path = require('path');
+
+const envPath = path.join(__dirname, '.env.local');
+if (fs.existsSync(envPath)) {
+  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+    const match = line.match(/^([A-Z0-9_]+)="?(.*?)"?$/);
+    if (match) process.env[match[1]] = match[2];
+  }
+}
 
 (async () => {
   const conn = process.env.DATABASE_URL;
-  const email = process.env.OWNER_EMAIL;
-  const password = process.env.OWNER_PASSWORD;
-  if (!conn || !email || !password) {
-    throw new Error("Set DATABASE_URL, OWNER_EMAIL, and OWNER_PASSWORD before running this script.");
+  const email = process.env.OWNER_EMAIL || 'owner@tailorshop.com';
+  const password = process.env.OWNER_PASSWORD || 'TailorShop2026!';
+  if (!conn) {
+    throw new Error("Set DATABASE_URL before running this script.");
   }
   const sql = postgres(conn, { ssl: 'require', max: 1 });
   try {

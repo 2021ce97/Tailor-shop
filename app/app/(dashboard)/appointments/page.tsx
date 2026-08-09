@@ -28,9 +28,9 @@ export default async function AppointmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-slate-900">Appointments — {session.branchName}</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Fittings, measurement sessions, and consultations.</p>
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-amber-50 via-slate-50 to-orange-50 p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-slate-900">Appointments — {session.branchName}</h1>
+        <p className="text-sm text-slate-600 mt-1">Fittings, measurement sessions, and consultations.</p>
       </div>
 
       <AppointmentForm customers={customerOptions} />

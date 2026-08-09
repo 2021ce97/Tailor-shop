@@ -59,10 +59,10 @@ export default async function TailorOrdersPage({ searchParams }: { searchParams?
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 rounded-3xl border border-slate-200 bg-gradient-to-r from-indigo-50 via-slate-50 to-blue-50 p-6 shadow-sm">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">{t.allOrders} — {session.branchName}</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{filter === "ready" ? t.readyForPickupDescription : filter === "overdue" ? t.pastPromisedDate : t.noOrders}</p>
+          <h1 className="text-xl font-semibold text-slate-900">{t.allOrders} — {session.branchName}</h1>
+          <p className="text-sm text-slate-600 mt-1">{filter === "ready" ? t.readyForPickupDescription : filter === "overdue" ? t.pastPromisedDate : t.noOrders}</p>
         </div>
         <Link href="/tailor-orders/new" className="text-sm rounded-md border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-50">
           + {t.newOrder}

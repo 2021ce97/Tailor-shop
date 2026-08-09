@@ -11,9 +11,9 @@ export default async function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-slate-900">{t.customersPage}</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{t.customerHelp}</p>
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-emerald-50 via-slate-50 to-teal-50 p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-slate-900">{t.customersPage}</h1>
+        <p className="text-sm text-slate-600 mt-1">{t.customerHelp}</p>
       </div>
 
       <CustomerForm translations={t} />

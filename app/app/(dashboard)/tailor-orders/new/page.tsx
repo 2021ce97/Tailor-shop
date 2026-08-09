@@ -46,9 +46,9 @@ export default async function NewTailorOrderPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold text-slate-900">{t.newTailorOrder} — {session.branchName}</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+      <div className="mb-6 rounded-3xl border border-slate-200 bg-gradient-to-r from-violet-50 via-slate-50 to-fuchsia-50 p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-slate-900">{t.newTailorOrder} — {session.branchName}</h1>
+        <p className="text-sm text-slate-600 mt-1">
           {t.advanceNotice}
         </p>
       </div>

@@ -27,9 +27,9 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold text-slate-900">{t.dashboardTitle} — {session.branchName}</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{t.dashboardDescription}</p>
+      <div className="mb-6 rounded-3xl border border-slate-200 bg-gradient-to-r from-sky-50 via-slate-50 to-indigo-50 p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-slate-900">{t.dashboardTitle} — {session.branchName}</h1>
+        <p className="text-sm text-slate-600 mt-1">{t.dashboardDescription}</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl">
         {cards.map((c) => {

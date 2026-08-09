@@ -1,4 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fs from "fs/promises";
+import path from "path";
 
 /**
  * Generic invoice/receipt layout shared by both retail sales and
@@ -83,14 +85,39 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
     return Math.max(1, lines.length) * (size + 3);
   };
 
+  // Try remote logo first, then fall back to local public logo files if configured or available
+  let logoEmbedded = false;
   if (input.logoUrl) {
     try {
       const response = await fetch(input.logoUrl);
       const bytes = new Uint8Array(await response.arrayBuffer());
       const image = /\.jpe?g($|\?)/i.test(input.logoUrl) ? await pdfDoc.embedJpg(bytes) : await pdfDoc.embedPng(bytes);
       page.drawImage(image, { x: MARGIN, y: PAGE_HEIGHT - MARGIN - 42, width: 42, height: 42 });
+      logoEmbedded = true;
     } catch {
-      // Keep the invoice usable when a configured logo URL is unavailable.
+      // continue to local fallback
+    }
+  }
+
+  if (!logoEmbedded) {
+    const candidates = [
+      path.join(process.cwd(), "app", "public", "rayan-logo.png"),
+      path.join(process.cwd(), "public", "rayan-logo.png"),
+      path.join(process.cwd(), "app", "public", "logo.png"),
+      path.join(process.cwd(), "public", "logo.png"),
+    ];
+    for (const pth of candidates) {
+      try {
+        const file = await fs.readFile(pth);
+        const bytes = new Uint8Array(file.buffer);
+        // detect by extension
+        const image = /\.jpe?g$/i.test(pth) ? await pdfDoc.embedJpg(bytes) : await pdfDoc.embedPng(bytes);
+        page.drawImage(image, { x: MARGIN, y: PAGE_HEIGHT - MARGIN - 42, width: 42, height: 42 });
+        logoEmbedded = true;
+        break;
+      } catch {
+        // ignore and try next
+      }
     }
   }
 
@@ -213,15 +240,30 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
   y -= 40;
 
   // --- Paid / balance due, if provided (tailor orders can be partly paid) ---
-  if (input.amountPaid !== undefined) summaryRow("Paid", input.amountPaid);
-  if (input.balanceDue !== undefined && input.balanceDue > 0) {
-    ensureSpace(40);
-    page.drawRectangle({ x: PAGE_WIDTH - MARGIN - 190, y: y - 8, width: 190, height: 26, color: amber50 });
-    page.drawText("BALANCE DUE", { x: PAGE_WIDTH - MARGIN - 180, y: y, size: 8, font: fontBold, color: amber700 });
-    const balStr = money(input.balanceDue, input.currencyCode);
-    const balW = fontBold.widthOfTextAtSize(balStr, 11);
-    page.drawText(balStr, { x: PAGE_WIDTH - MARGIN - 10 - balW, y: y - 1, size: 11, font: fontBold, color: amber700 });
-    y -= 36;
+  const paidExists = input.amountPaid !== undefined;
+  const balanceExists = input.balanceDue !== undefined && input.balanceDue > 0;
+  if (paidExists || balanceExists) {
+    // Reserve a safe block for paid/balance area
+    ensureSpace(80);
+    const boxX = PAGE_WIDTH - MARGIN - 190;
+    // If paid exists, draw it as a simple right-aligned row above the balance box
+    if (paidExists) {
+      const paidStr = money(input.amountPaid as number, input.currencyCode);
+      const paidW = font.widthOfTextAtSize(paidStr, 9);
+      page.drawText("Paid", { x: boxX + 8, y: y, size: 9, font: font, color: slate600 });
+      page.drawText(paidStr, { x: PAGE_WIDTH - MARGIN - paidW, y: y, size: 9, font: fontBold, color: slate900 });
+      y -= 18;
+    }
+
+    if (balanceExists) {
+      // Balance is emphasized in an amber box
+      page.drawRectangle({ x: boxX, y: y - 8, width: 190, height: 36, color: amber50 });
+      page.drawText("BALANCE DUE", { x: boxX + 8, y: y + 6, size: 9, font: fontBold, color: amber700 });
+      const balStr = money(input.balanceDue as number, input.currencyCode);
+      const balW = fontBold.widthOfTextAtSize(balStr, 11);
+      page.drawText(balStr, { x: PAGE_WIDTH - MARGIN - 10 - balW, y: y - 2, size: 13, font: fontBold, color: amber700 });
+      y -= 44;
+    }
   }
 
   // --- Notes ---

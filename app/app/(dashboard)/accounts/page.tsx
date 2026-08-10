@@ -1,13 +1,43 @@
-import Link from "next/link";
-import { createBusinessContact } from "@/app/actions/garment-management";
-import { businessContacts, contactAccountEntries, db } from "@/lib/db";
-import { desc, sql } from "drizzle-orm";
+import { requireSession } from "@/lib/auth/get-session";
+import { getLocale, getTranslations } from "@/lib/i18n";
 import { cookies } from "next/headers";
-import { getLocale } from "@/lib/i18n";
+import { getBusinessContacts } from "@/app/actions/business-contacts";
+import { AccountsList } from "./accounts-list";
+import { CreateContactForm } from "./create-contact-form";
 
-export default async function AccountsPage({ searchParams }: { searchParams: Promise<{ q?: string; role?: string }> }) {
-  const query = await searchParams; const locale = getLocale((await cookies()).get("tailor_locale")?.value); const q = query.q?.trim() ?? ""; const role = query.role ?? "";
-  const rows = await db.execute<{ id: number; contact_code: string; name: string; phone: string | null; roles: string[]; debit: string; credit: string }>(sql`SELECT contact.id, contact.contact_code, contact.name, contact.phone, contact.roles, COALESCE(SUM(entry.debit_amount),0) AS debit, COALESCE(SUM(entry.credit_amount),0) AS credit FROM business_contacts contact LEFT JOIN contact_account_entries entry ON entry.business_contact_id = contact.id WHERE (${q} = '' OR contact.name ILIKE ${`%${q}%`} OR contact.phone ILIKE ${`%${q}%`} OR contact.contact_code ILIKE ${`%${q}%`}) AND (${role} = '' OR contact.roles @> ${JSON.stringify([role])}::jsonb) GROUP BY contact.id ORDER BY contact.name`);
-  const text = locale === "ps" ? { title: "حسابات", add: "نوی حساب", name: "نوم", phone: "ټیلیفون", role: "دنده", balance: "بیلانس", search: "نوم، ټیلیفون یا کوډ", business: "سوداګري", supplier: "عرضه کوونکی", tailor: "خیاط", cutter: "قیچي کوونکی" } : { title: "حسابات", add: "افزودن حساب", name: "نام", phone: "تماس", role: "نقش", balance: "بیلانس", search: "نام، تماس یا کد", business: "تجارت", supplier: "تأمین‌کننده", tailor: "خیاط", cutter: "برش‌کار" };
-  return <div className="space-y-6"><h1 className="text-xl font-semibold">{text.title}</h1><div className="grid gap-4 lg:grid-cols-2"><form className="flex gap-2 rounded-xl border bg-white p-4"><input name="q" defaultValue={q} placeholder={text.search} className="min-w-0 flex-1 rounded border p-2" /><select name="role" defaultValue={role} className="rounded border p-2"><option value="">{text.role}</option>{["business","supplier","tailor","cutter"].map((value) => <option key={value} value={value}>{value}</option>)}</select><button className="rounded bg-slate-900 px-3 text-white">⌕</button></form><form action={createBusinessContact} className="flex flex-wrap gap-2 rounded-xl border bg-white p-4"><input required name="name" placeholder={text.name} className="rounded border p-2" /><input name="phone" placeholder={text.phone} className="rounded border p-2" />{["business","supplier","tailor","cutter"].map((value) => <label key={value} className="text-xs"><input name="roles" value={value} type="checkbox" /> {value}</label>)}<button className="rounded bg-emerald-700 px-3 text-sm text-white">{text.add}</button></form></div><div className="overflow-hidden rounded-xl border bg-white"><table className="w-full text-sm"><thead className="bg-slate-50 text-left text-xs"><tr><th className="p-3">{text.name}</th><th>{text.phone}</th><th>{text.role}</th><th className="text-right">{text.balance}</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id} className="border-t"><td className="p-3 font-medium"><Link href={`/accounts/${row.id}`} className="hover:underline">{row.name}<span className="ms-2 text-xs text-slate-400">{row.contact_code}</span></Link></td><td>{row.phone ?? "—"}</td><td>{row.roles.join(", ")}</td><td className="p-3 text-right">{(Number(row.debit) - Number(row.credit)).toFixed(2)} AFN</td></tr>)}</tbody></table></div></div>;
+export default async function AccountsPage() {
+  const session = await requireSession();
+  const locale = getLocale((await cookies()).get("tailor_locale")?.value);
+  const t = getTranslations(locale);
+
+  const contacts = await getBusinessContacts(session.branchId);
+
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-purple-50 via-slate-50 to-pink-50 p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-slate-900">
+          {locale === "ps" ? "کاري حساب‌ات" : "حساب‌های کاری"}
+        </h1>
+        <p className="mt-1 text-sm text-slate-600">
+          {locale === "ps"
+            ? "کارگران، تاجرین، او سپلائی‌کار"
+            : "کارگران، فروشندگان، و تأمین‌کنندگان"}
+        </p>
+      </div>
+
+      {/* Two Column Layout */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Create Form */}
+        <div className="lg:col-span-1">
+          <CreateContactForm locale={locale} t={t} />
+        </div>
+
+        {/* Contacts List */}
+        <div className="lg:col-span-2">
+          <AccountsList locale={locale} contacts={contacts} t={t} />
+        </div>
+      </div>
+    </div>
+  );
 }

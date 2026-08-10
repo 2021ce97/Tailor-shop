@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db, tailorOrders, customers } from "@/lib/db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, or, sql } from "drizzle-orm";
 import { requireSession } from "@/lib/auth/get-session";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "@/lib/i18n";
@@ -29,9 +29,10 @@ const stageColors: Record<string, string> = {
   cancelled: "bg-red-50 text-red-700",
 };
 
-export default async function TailorOrdersPage({ searchParams }: { searchParams?: Promise<{ filter?: string }> }) {
+export default async function TailorOrdersPage({ searchParams }: { searchParams?: Promise<{ filter?: string; q?: string }> }) {
   const session = await requireSession();
   const filter = (await searchParams)?.filter;
+  const q = (await searchParams)?.q?.trim() ?? "";
   const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
   const rows = await db
     .select({
@@ -53,6 +54,7 @@ export default async function TailorOrdersPage({ searchParams }: { searchParams?
       filter === "ready" ? eq(tailorOrders.currentStage, "ready") :
       filter === "in_progress" ? eq(tailorOrders.status, "in_progress") :
       filter === "overdue" ? sql`${tailorOrders.promisedDate} < CURRENT_DATE AND ${tailorOrders.status} = 'in_progress'` : undefined,
+      q ? or(sql`${tailorOrders.orderNo} ILIKE ${`%${q}%`}`, sql`${customers.name} ILIKE ${`%${q}%`}`, sql`${customers.phone} ILIKE ${`%${q}%`}`, sql`${customers.customerCode} ILIKE ${`%${q}%`}`, sql`EXISTS (SELECT 1 FROM tailor_order_items item WHERE item.tailor_order_id = ${tailorOrders.id} AND item.ticket_no ILIKE ${`%${q}%`})`) : undefined,
     ))
     .orderBy(desc(tailorOrders.createdAt))
     .limit(100);
@@ -70,6 +72,7 @@ export default async function TailorOrdersPage({ searchParams }: { searchParams?
       </div>
 
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <form className="border-b border-slate-200 p-3"><input name="q" defaultValue={q} placeholder="Search by customer, phone, customer ID, order or garment ticket" className="w-full max-w-lg rounded-md border border-slate-300 px-3 py-2 text-sm" /></form>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">

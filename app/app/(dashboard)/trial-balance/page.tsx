@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
+import { cookies } from "next/headers";
+import { getLocale, getTranslations } from "@/lib/i18n";
 
 interface TrialBalanceRow {
   [key: string]: unknown;
@@ -12,6 +14,7 @@ interface TrialBalanceRow {
 }
 
 export default async function TrialBalancePage() {
+  const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
   const rows = await db.execute<TrialBalanceRow>(sql`SELECT * FROM trial_balance_view ORDER BY account_code`);
 
   const totalDebit = rows.reduce((s, r) => s + Number(r.total_debit), 0);
@@ -22,30 +25,30 @@ export default async function TrialBalancePage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Trial Balance</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Net debit/credit balance for every account.</p>
+          <h1 className="text-lg font-semibold text-slate-900">{t.trialBalance}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{t.trialBalanceDescription}</p>
         </div>
         <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${isBalanced ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"}`}>
-          {isBalanced ? "Balanced" : "Out of balance"}
+          {isBalanced ? t.balanced : t.outOfBalance}
         </span>
       </div>
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
-              <th className="px-4 py-2.5">Code</th>
-              <th className="px-4 py-2.5">Account</th>
-              <th className="px-4 py-2.5">Type</th>
-              <th className="px-4 py-2.5 text-right">Debit</th>
-              <th className="px-4 py-2.5 text-right">Credit</th>
-              <th className="px-4 py-2.5 text-right">Balance</th>
+              <th className="px-4 py-2.5">{t.code}</th>
+              <th className="px-4 py-2.5">{t.account}</th>
+              <th className="px-4 py-2.5">{t.type}</th>
+              <th className="px-4 py-2.5 text-right">{t.debit}</th>
+              <th className="px-4 py-2.5 text-right">{t.credit}</th>
+              <th className="px-4 py-2.5 text-right">{t.balance}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
-                  No postings yet.
+                  {t.noPostings}
                 </td>
               </tr>
             )}
@@ -64,7 +67,7 @@ export default async function TrialBalancePage() {
             <tfoot>
               <tr className="border-t-2 border-slate-200 bg-slate-50 font-semibold">
                 <td className="px-4 py-2.5" colSpan={3}>
-                  Total
+                  {t.total}
                 </td>
                 <td className="px-4 py-2.5 text-right">{totalDebit.toFixed(2)}</td>
                 <td className="px-4 py-2.5 text-right">{totalCredit.toFixed(2)}</td>

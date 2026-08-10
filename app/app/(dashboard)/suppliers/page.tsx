@@ -1,46 +1,12 @@
-import { db, suppliers } from "@/lib/db";
-import { desc } from "drizzle-orm";
-import { SupplierForm } from "./supplier-form";
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { sql } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { getLocale, getTranslations } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
 
-export default async function SuppliersPage() {
-  const rows = await db.select().from(suppliers).orderBy(desc(suppliers.createdAt)).limit(100);
-  const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
-
-  return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-rose-50 via-slate-50 to-fuchsia-50 p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">{t.suppliersPage}</h1>
-        <p className="text-sm text-slate-600 mt-1">{t.supplierHelp}</p>
-      </div>
-      <SupplierForm translations={t} />
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
-              <th className="px-4 py-2.5">{t.name}</th><th className="px-4 py-2.5">{t.type}</th><th className="px-4 py-2.5">{t.phone}</th><th className="px-4 py-2.5">{t.status}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-slate-400">
-                  {t.noSuppliers}
-                </td>
-              </tr>
-            )}
-            {rows.map((s) => (
-              <tr key={s.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-4 py-2.5 font-medium text-slate-900">{s.name}</td>
-                <td className="px-4 py-2.5 text-slate-600 capitalize">{s.type ?? "—"}</td>
-                <td className="px-4 py-2.5 text-slate-600">{s.phone ?? "—"}</td>
-                <td className="px-4 py-2.5 text-slate-600 capitalize">{s.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+export default async function SuppliersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const q = (await searchParams).q?.trim() ?? ""; const locale = getLocale((await cookies()).get("tailor_locale")?.value);
+  const suppliers = await db.execute<{ id: number; contact_code: string; name: string; phone: string | null; debit: string; credit: string }>(sql`SELECT contact.id, contact.contact_code, contact.name, contact.phone, COALESCE(SUM(entry.debit_amount),0) AS debit, COALESCE(SUM(entry.credit_amount),0) AS credit FROM business_contacts contact LEFT JOIN contact_account_entries entry ON entry.business_contact_id = contact.id WHERE contact.roles @> '["supplier"]'::jsonb AND (${q} = '' OR contact.name ILIKE ${`%${q}%`} OR contact.phone ILIKE ${`%${q}%`} OR contact.contact_code ILIKE ${`%${q}%`}) GROUP BY contact.id ORDER BY contact.name`);
+  const text = locale === "ps" ? { title: "عرضه کوونکي", search: "نوم، ټیلیفون یا کوډ", account: "حساب", due: "بیلانس", add: "نوی عرضه کوونکی په حساباتو کې زیات کړئ" } : { title: "تأمین‌کنندگان", search: "نام، تماس یا کد", account: "حساب", due: "بیلانس", add: "تأمین‌کننده جدید را در حسابات اضافه کنید" };
+  return <div className="space-y-5"><div><h1 className="text-xl font-semibold">{text.title}</h1><p className="text-sm text-slate-500">{text.add}</p></div><form className="flex max-w-lg gap-2"><input name="q" defaultValue={q} placeholder={text.search} className="min-w-0 flex-1 rounded border bg-white p-2"/><button className="rounded bg-slate-900 px-3 text-white">⌕</button></form><div className="overflow-hidden rounded-xl border bg-white"><table className="w-full text-sm"><thead className="bg-slate-50 text-left text-xs"><tr><th className="p-3">{text.title}</th><th>تماس</th><th>{text.account}</th><th className="p-3 text-right">{text.due}</th></tr></thead><tbody>{suppliers.map((supplier) => <tr key={supplier.id} className="border-t"><td className="p-3 font-medium">{supplier.name}<span className="ms-2 text-xs text-slate-400">{supplier.contact_code}</span></td><td>{supplier.phone ?? "—"}</td><td><Link className="text-indigo-700 underline" href={`/accounts/${supplier.id}`}>{text.account}</Link></td><td className="p-3 text-right">{(Number(supplier.debit) - Number(supplier.credit)).toFixed(2)} AFN</td></tr>)}</tbody></table></div></div>;
 }

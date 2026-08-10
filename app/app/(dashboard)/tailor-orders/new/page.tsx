@@ -1,58 +1,25 @@
-import { db, customers, fabrics, measurementProfiles, measurementTemplates } from "@/lib/db";
-import { eq, and, desc } from "drizzle-orm";
+import { db, customers, garmentDesignCategories, garmentDesignOptions, garmentMeasurementFields, garmentTypes } from "@/lib/db";
+import { asc, eq } from "drizzle-orm";
 import { requireSession } from "@/lib/auth/get-session";
-import { TailorOrderForm } from "./tailor-order-form";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "@/lib/i18n";
+import { GarmentOrderForm } from "./garment-order-form";
 
 export default async function NewTailorOrderPage() {
   const session = await requireSession();
-  const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
-
-  const [customerRows, fabricRows, profileRows, templateRows] = await Promise.all([
-    db.select({ id: customers.id, name: customers.name, phone: customers.phone }).from(customers).where(eq(customers.status, "active")),
-    db
-      .select({ id: fabrics.id, name: fabrics.name, color: fabrics.color, unit: fabrics.unit, stockQty: fabrics.stockQty, costPerUnit: fabrics.costPerUnit })
-      .from(fabrics)
-      .where(and(eq(fabrics.status, "active"), eq(fabrics.branchId, session.branchId))),
-    db
-      .select({
-        id: measurementProfiles.id,
-        customerId: measurementProfiles.customerId,
-        garmentType: measurementProfiles.garmentType,
-        label: measurementProfiles.label,
-        takenAt: measurementProfiles.takenAt,
-      })
-      .from(measurementProfiles)
-      .orderBy(desc(measurementProfiles.createdAt)),
-    db.select().from(measurementTemplates).orderBy(desc(measurementTemplates.createdAt)),
+  const locale = getLocale((await cookies()).get("tailor_locale")?.value);
+  const t = getTranslations(locale);
+  const [customerRows, typeRows, fieldRows, categoryRows, optionRows] = await Promise.all([
+    db.select({ id: customers.id, name: customers.name, phone: customers.phone, code: customers.customerCode }).from(customers).where(eq(customers.status, "active")),
+    db.select().from(garmentTypes).where(eq(garmentTypes.isActive, true)).orderBy(asc(garmentTypes.sortOrder)),
+    db.select().from(garmentMeasurementFields).orderBy(asc(garmentMeasurementFields.sortOrder)),
+    db.select().from(garmentDesignCategories).orderBy(asc(garmentDesignCategories.sortOrder)),
+    db.select().from(garmentDesignOptions).where(eq(garmentDesignOptions.isActive, true)).orderBy(asc(garmentDesignOptions.sortOrder)),
   ]);
-
-  const customerOptions = customerRows.map((c) => ({ value: c.id, label: c.name, sublabel: c.phone ?? undefined }));
-  const fabricOptions = fabricRows.map((f) => ({
-    value: f.id,
-    label: `${f.name}${f.color ? ` (${f.color})` : ""}`,
-    sublabel: `${f.stockQty} ${f.unit} in stock`,
-    costPerUnit: Number(f.costPerUnit),
-    unit: f.unit,
+  const types = typeRows.map((type) => ({
+    id: type.id, code: type.code, name: locale === "ps" ? type.namePs : type.nameFa,
+    fields: fieldRows.filter((field) => field.garmentTypeId === type.id).map((field) => ({ code: field.code, label: locale === "ps" ? field.labelPs : field.labelFa, unit: field.unit, required: field.isRequired })),
+    categories: categoryRows.filter((category) => category.garmentTypeId === type.id).map((category) => ({ code: category.code, label: locale === "ps" ? category.labelPs : category.labelFa, required: category.isRequired, options: optionRows.filter((option) => option.categoryId === category.id).map((option) => ({ value: String(option.id), label: locale === "ps" ? option.labelPs : option.labelFa })) })),
   }));
-  const profileOptions = profileRows.map((p) => ({
-    value: p.id,
-    customerId: p.customerId,
-    label: `${p.garmentType}${p.label ? ` — ${p.label}` : ""}`,
-    takenAt: p.takenAt,
-  }));
-  const templates = Object.fromEntries(templateRows.map((template) => [template.garmentType, template.fields as string[]]));
-
-  return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6 rounded-3xl border border-slate-200 bg-gradient-to-r from-violet-50 via-slate-50 to-fuchsia-50 p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">{t.newTailorOrder} — {session.branchName}</h1>
-        <p className="text-sm text-slate-600 mt-1">
-          {t.advanceNotice}
-        </p>
-      </div>
-      <TailorOrderForm customers={customerOptions} fabrics={fabricOptions} measurementProfiles={profileOptions} templates={templates} translations={t} />
-    </div>
-  );
+  return <GarmentOrderForm locale={locale} title={`${t.newOrder} — ${session.branchName}`} customers={customerRows.map((row) => ({ value: row.id, label: row.name, sublabel: [row.phone, row.code].filter(Boolean).join(" · ") }))} garmentTypes={types} />;
 }

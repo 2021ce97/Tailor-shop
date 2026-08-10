@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Scissors,
   Ruler,
-  Calendar,
   Users,
   Truck,
   BookOpen,
@@ -11,6 +10,7 @@ import {
   TrendingUp,
   Settings,
   LogOut,
+  WalletCards,
 } from "lucide-react";
 import { requireSession } from "@/lib/auth/get-session";
 import { logout } from "@/app/actions/auth";
@@ -32,26 +32,36 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [shop] = await db.select({ shopName: shopSettings.shopName }).from(shopSettings).where(eq(shopSettings.id, 1));
 
   const localizedNav = [
-    { section: t.overview, items: [{ href: "/dashboard", label: t.dashboard, icon: LayoutDashboard }] },
     {
-      section: t.tailoring,
+      section: t.mainPages,
       items: [
+        { href: "/dashboard", label: t.dashboard, icon: LayoutDashboard },
         { href: "/tailor-orders/new", label: t.newOrder, icon: Scissors },
-        { href: "/tailor-orders", label: t.allOrders, icon: Scissors },
-        { href: "/fabrics", label: t.fabricInventory, icon: Ruler },
-        { href: "/appointments", label: t.appointments, icon: Calendar },
+        { href: "/tailor-orders", label: t.ordersReport, icon: TrendingUp },
+        { href: "/garment-config", label: t.garmentConfig, icon: Settings },
+        { href: "/settings", label: t.settings, icon: Settings },
       ],
     },
-    { section: t.masterData, items: [{ href: "/customers", label: t.customers, icon: Users }, { href: "/suppliers", label: t.suppliers, icon: Truck }] },
     {
-      section: t.accounts,
+      section: t.operations,
       items: [
+        { href: "/cabinet", label: t.cabinet, icon: WalletCards },
+        { href: "/accounts", label: t.accounts, icon: BookOpen },
+        { href: "/fabrics", label: t.fabricInventory, icon: Ruler },
+        { href: "/stitching-cutting", label: t.stitchingAndCutting, icon: Scissors },
+        { href: "/delivery", label: t.submitToClient, icon: Truck },
+        { href: "/suppliers", label: t.suppliers, icon: Truck },
+        { href: "/role-assignment", label: t.roleAssignment, icon: Users },
+      ],
+    },
+    {
+      section: t.financialReports,
+      items: [
+        { href: "/reports", label: t.reports, icon: TrendingUp },
         { href: "/ledger", label: t.ledger, icon: BookOpen },
         { href: "/trial-balance", label: t.trialBalance, icon: Scale },
-        { href: "/reports", label: t.reports, icon: TrendingUp },
       ],
     },
-    { section: t.system, items: [{ href: "/settings", label: t.settings, icon: Settings }] },
   ];
 
   return (

@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
+import { cookies } from "next/headers";
+import { getLocale, getTranslations } from "@/lib/i18n";
 
 interface LedgerRow {
   [key: string]: unknown;
@@ -13,6 +15,7 @@ interface LedgerRow {
 }
 
 export default async function LedgerPage() {
+  const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
   const rows = await db.execute<LedgerRow>(sql`
     SELECT account_name, txn_no, txn_type, txn_date, description, debit_amount, credit_amount
     FROM ledger_view ORDER BY txn_date DESC, transaction_id DESC LIMIT 200
@@ -21,26 +24,26 @@ export default async function LedgerPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-lg font-semibold text-slate-900">Ledger</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Every posted debit and credit line, most recent first.</p>
+          <h1 className="text-lg font-semibold text-slate-900">{t.ledger}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{t.ledgerDescription}</p>
       </div>
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
-              <th className="px-4 py-2.5">Date</th>
-              <th className="px-4 py-2.5">Txn No</th>
-              <th className="px-4 py-2.5">Account</th>
-              <th className="px-4 py-2.5">Description</th>
-              <th className="px-4 py-2.5 text-right">Debit</th>
-              <th className="px-4 py-2.5 text-right">Credit</th>
+              <th className="px-4 py-2.5">{t.date}</th>
+              <th className="px-4 py-2.5">{t.transactionNumber}</th>
+              <th className="px-4 py-2.5">{t.account}</th>
+              <th className="px-4 py-2.5">{t.description}</th>
+              <th className="px-4 py-2.5 text-right">{t.debit}</th>
+              <th className="px-4 py-2.5 text-right">{t.credit}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
-                  No ledger entries yet.
+                  {t.noLedgerEntries}
                 </td>
               </tr>
             )}

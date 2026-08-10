@@ -55,6 +55,8 @@ export async function deliverTailorOrder(input: DeliverTailorOrderInput) {
     }
 
     const advancePaid = Number(order.advancePaid);
+    const [receivableAccount] = await tx.select({ id: chartOfAccounts.id }).from(chartOfAccounts).where(eq(chartOfAccounts.accountCode, "1100"));
+    if (!receivableAccount) throw new Error("Accounts Receivable (1100) is missing.");
     const lines: { accountId: number; debitAmount: number; creditAmount: number }[] = [];
 
     if (advancePaid > 0) {
@@ -63,13 +65,17 @@ export async function deliverTailorOrder(input: DeliverTailorOrderInput) {
     if (input.balanceCollected > 0) {
       lines.push({ accountId: cashAccount.id, debitAmount: input.balanceCollected, creditAmount: 0 });
     }
+    const outstandingAmount = balanceDue - input.balanceCollected;
+    if (outstandingAmount > 0) {
+      lines.push({ accountId: receivableAccount.id, debitAmount: outstandingAmount, creditAmount: 0 });
+    }
     lines.push({ accountId: incomeAccount.id, debitAmount: 0, creditAmount: Number(order.totalAmount) });
 
     const totalDebit = lines.reduce((s, l) => s + l.debitAmount, 0);
     const totalCredit = lines.reduce((s, l) => s + l.creditAmount, 0);
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       throw new Error(
-        `Delivery posting does not balance: debit ${totalDebit} != credit ${totalCredit}. This can happen if the order isn't fully paid — collect the remaining balance first, or adjust the order.`
+        `Delivery posting does not balance: debit ${totalDebit} != credit ${totalCredit}.`
       );
     }
 

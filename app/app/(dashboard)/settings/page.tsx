@@ -1,25 +1,19 @@
-import { db, shopSettings } from "@/lib/db";
-import { eq } from "drizzle-orm";
-import { SettingsForm } from "./settings-form";
+import { addDesignOption, addGarmentType, addMeasurementField } from "@/app/actions/garment-management";
+import { db, garmentDesignCategories, garmentDesignOptions, garmentMeasurementFields, garmentTypes } from "@/lib/db";
+import { asc, eq } from "drizzle-orm";
+import { cookies } from "next/headers";
+import { getLocale } from "@/lib/i18n";
 
 export default async function SettingsPage() {
-  const [shop] = await db.select().from(shopSettings).where(eq(shopSettings.id, 1));
-
-  return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold text-slate-900">Shop Settings</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Shown on invoices and used as defaults across the system.</p>
-      </div>
-      <SettingsForm
-        shopName={shop?.shopName ?? ""}
-        address={shop?.address ?? null}
-        phone={shop?.phone ?? null}
-        email={shop?.email ?? null}
-        currency={shop?.currency ?? "PKR"}
-        taxPercent={shop?.taxPercent ?? "0"}
-        logoUrl={shop?.logoUrl ?? null}
-      />
+  const locale = getLocale((await cookies()).get("tailor_locale")?.value);
+  const [types, fields, categories, options] = await Promise.all([db.select().from(garmentTypes).orderBy(asc(garmentTypes.sortOrder)), db.select().from(garmentMeasurementFields), db.select().from(garmentDesignCategories), db.select().from(garmentDesignOptions)]);
+  const label = locale === "ps" ? { title: "د جامو تنظیمات", help: "د هر لباس لپاره اندازه او ډیزاین انتخابونه تنظیم کړئ.", addType: "د جامو ډول زیاتول", addField: "د اندازې برخه زیاتول", addDesign: "د ډیزاین انتخاب زیاتول", code: "کوډ", fa: "دري نوم", ps: "پښتو نوم", type: "د جامو ډول", category: "کټګوري", option: "انتخاب", unit: "واحد", saved: "ثبت شوي تنظیمات" } : { title: "تنظیمات لباس", help: "اندازه‌ها و انتخاب‌های دیزاین هر نوع لباس را تنظیم کنید.", addType: "افزودن نوع لباس", addField: "افزودن بخش اندازه", addDesign: "افزودن انتخاب دیزاین", code: "کد", fa: "نام دری", ps: "نام پشتو", type: "نوع لباس", category: "دسته‌بندی", option: "انتخاب", unit: "واحد", saved: "تنظیمات ثبت‌شده" };
+  return <div className="mx-auto max-w-6xl space-y-6"><div><h1 className="text-xl font-semibold">{label.title}</h1><p className="text-sm text-slate-500">{label.help}</p></div>
+    <div className="grid gap-5 lg:grid-cols-3">
+      <form action={addGarmentType} className="space-y-3 rounded-xl border bg-white p-4"><h2 className="font-semibold">{label.addType}</h2><input required name="code" placeholder={label.code} className="w-full rounded border p-2" /><input required name="nameFa" placeholder={label.fa} className="w-full rounded border p-2" /><input required name="namePs" placeholder={label.ps} className="w-full rounded border p-2" /><button className="rounded bg-slate-900 px-3 py-2 text-sm text-white">+</button></form>
+      <form action={addMeasurementField} className="space-y-3 rounded-xl border bg-white p-4"><h2 className="font-semibold">{label.addField}</h2><select required name="garmentTypeId" className="w-full rounded border p-2"><option value="">{label.type}</option>{types.map((type) => <option key={type.id} value={type.id}>{locale === "ps" ? type.namePs : type.nameFa}</option>)}</select><input required name="code" placeholder={label.code} className="w-full rounded border p-2" /><input required name="labelFa" placeholder={label.fa} className="w-full rounded border p-2" /><input required name="labelPs" placeholder={label.ps} className="w-full rounded border p-2" /><input name="unit" defaultValue="inch" placeholder={label.unit} className="w-full rounded border p-2" /><label className="text-sm"><input name="isRequired" type="checkbox" /> {locale === "ps" ? "اړین" : "ضروری"}</label><button className="block rounded bg-slate-900 px-3 py-2 text-sm text-white">+</button></form>
+      <form action={addDesignOption} className="space-y-3 rounded-xl border bg-white p-4"><h2 className="font-semibold">{label.addDesign}</h2><select required name="garmentTypeId" className="w-full rounded border p-2"><option value="">{label.type}</option>{types.map((type) => <option key={type.id} value={type.id}>{locale === "ps" ? type.namePs : type.nameFa}</option>)}</select><select name="categoryId" className="w-full rounded border p-2"><option value="">{locale === "ps" ? "نوې کټګوري" : "دسته‌بندی جدید"}</option>{categories.map((category) => <option key={category.id} value={category.id}>{locale === "ps" ? category.labelPs : category.labelFa}</option>)}</select><input name="categoryFa" placeholder={`${label.category} (${label.fa})`} className="w-full rounded border p-2" /><input name="categoryPs" placeholder={`${label.category} (${label.ps})`} className="w-full rounded border p-2" /><input required name="labelFa" placeholder={`${label.option} (${label.fa})`} className="w-full rounded border p-2" /><input required name="labelPs" placeholder={`${label.option} (${label.ps})`} className="w-full rounded border p-2" /><button className="rounded bg-slate-900 px-3 py-2 text-sm text-white">+</button></form>
     </div>
-  );
+    <section className="rounded-xl border bg-white p-5"><h2 className="mb-3 font-semibold">{label.saved}</h2><div className="space-y-4">{types.map((type) => <div key={type.id} className="rounded-lg bg-slate-50 p-3"><strong>{locale === "ps" ? type.namePs : type.nameFa}</strong><div className="mt-2 flex flex-wrap gap-2 text-xs">{fields.filter((field) => field.garmentTypeId === type.id).map((field) => <span key={field.id} className="rounded bg-white px-2 py-1">{locale === "ps" ? field.labelPs : field.labelFa}</span>)}{categories.filter((category) => category.garmentTypeId === type.id).flatMap((category) => options.filter((option) => option.categoryId === category.id).map((option) => <span key={option.id} className="rounded border border-indigo-200 bg-indigo-50 px-2 py-1">{locale === "ps" ? option.labelPs : option.labelFa}</span>))}</div></div>)}</div></section>
+  </div>;
 }

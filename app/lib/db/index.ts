@@ -4,6 +4,7 @@ import * as core from "./schema-core";
 import * as inventory from "./schema-inventory";
 import * as tailoring from "./schema-tailoring";
 import * as sales from "./schema-sales";
+import * as garmentManagement from "./schema-garment-management";
 
 const connectionString = process.env.DATABASE_URL?.replace(
   /pooler\.supabase\.co(?=:)/,
@@ -21,10 +22,11 @@ const client = postgres(connectionString, {
 });
 
 export const db = drizzle(client, {
-  schema: { ...core, ...inventory, ...tailoring, ...sales },
+  schema: { ...core, ...inventory, ...tailoring, ...sales, ...garmentManagement },
 });
 
 export * from "./schema-core";
 export * from "./schema-inventory";
 export * from "./schema-tailoring";
 export * from "./schema-sales";
+export * from "./schema-garment-management";

@@ -17,6 +17,7 @@ async function runMigration() {
     path.join(__dirname, 'db', 'migrations', '009_simplify_to_tailoring_only.sql'),
     path.join(__dirname, 'db', 'migrations', '010_restore_single_user_auth.sql'),
     path.join(__dirname, 'db', 'migrations', '011_measurement_templates.sql'),
+    path.join(__dirname, 'db', 'migrations', '012_garment_management.sql'),
   ];
   
   const dbUrl = process.env.DATABASE_URL;

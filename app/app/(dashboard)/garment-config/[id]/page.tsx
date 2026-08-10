@@ -1,13 +1,16 @@
 import { db, garmentTypes, garmentMeasurementFields, garmentDesignCategories, garmentDesignOptions } from "@/lib/db";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "@/lib/i18n";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { GarmentConfigForms } from "../garment-config-forms";
+import { DeleteFieldButton, DeleteCategoryButton, DeleteOptionButton } from "../delete-buttons";
 
 export default async function GarmentTypeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
+  const locale = getLocale((await cookies()).get("tailor_locale")?.value);
+  const t = getTranslations(locale);
   
   const [garmentType] = await db.select().from(garmentTypes).where(eq(garmentTypes.id, Number(id)));
   if (!garmentType) notFound();
@@ -68,10 +71,7 @@ export default async function GarmentTypeDetailPage({ params }: { params: Promis
                         <td className="px-4 py-2 text-slate-600">{f.unit}</td>
                         <td className="px-4 py-2 text-slate-600">{f.isRequired ? "Yes" : "No"}</td>
                         <td className="px-4 py-2 text-right">
-                          <form action={async () => { "use server"; }} method="POST" className="inline">
-                            <input type="hidden" name="fieldId" value={f.id} />
-                            <button type="submit" className="text-xs text-red-600 hover:text-red-800">{t.delete}</button>
-                          </form>
+                          <DeleteFieldButton fieldId={f.id} />
                         </td>
                       </tr>
                     ))}
@@ -79,22 +79,6 @@ export default async function GarmentTypeDetailPage({ params }: { params: Promis
                 </table>
               </div>
             )}
-
-            <details className="bg-slate-50 border border-slate-200 rounded p-4">
-              <summary className="cursor-pointer font-medium text-slate-900">{t.addMeasurementField}</summary>
-              <form action={async () => { "use server"; }} method="POST" className="mt-4 space-y-3">
-                <input type="hidden" name="garmentTypeId" value={garmentType.id} />
-                <input type="text" name="code" placeholder="Field code" className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md" required />
-                <input type="text" name="labelFa" placeholder="Dari label" className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md" required />
-                <input type="text" name="labelPs" placeholder="Pashto label" className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md" required />
-                <input type="text" name="unit" placeholder="Unit (e.g., inch, cm)" defaultValue="inch" className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md" />
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" name="isRequired" className="w-4 h-4" />
-                  <span className="text-sm text-slate-700">{t.isRequired}</span>
-                </label>
-                <button type="submit" className="text-sm rounded-md bg-slate-900 text-white px-3 py-1.5 hover:bg-slate-800">{t.addMeasurementField}</button>
-              </form>
-            </details>
           </div>
 
           {/* Design Categories */}
@@ -116,52 +100,25 @@ export default async function GarmentTypeDetailPage({ params }: { params: Promis
                           <p className="font-medium text-slate-900">{cat.labelFa}</p>
                           <p className="text-xs text-slate-600">{cat.labelPs}</p>
                         </div>
-                        <form action={async () => { "use server"; }} method="POST" className="inline">
-                          <input type="hidden" name="categoryId" value={cat.id} />
-                          <button type="submit" className="text-xs text-red-600 hover:text-red-800">{t.delete}</button>
-                        </form>
+                        <DeleteCategoryButton categoryId={cat.id} />
                       </div>
 
                       {catOptions.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-3">
                           {catOptions.map((opt) => (
-                            <span key={opt.id} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                              {opt.labelFa}
-                            </span>
+                            <DeleteOptionButton key={opt.id} optionId={opt.id} optionName={opt.labelFa} />
                           ))}
                         </div>
                       )}
-
-                      <details className="text-xs">
-                        <summary className="cursor-pointer text-slate-600 hover:text-slate-900">{t.addDesignOption}</summary>
-                        <form action={async () => { "use server"; }} method="POST" className="mt-2 space-y-2">
-                          <input type="hidden" name="categoryId" value={cat.id} />
-                          <input type="text" name="labelFa" placeholder="Dari" className="w-full px-2 py-1 text-xs border border-slate-300 rounded" required />
-                          <input type="text" name="labelPs" placeholder="Pashto" className="w-full px-2 py-1 text-xs border border-slate-300 rounded" required />
-                          <button type="submit" className="text-xs bg-slate-900 text-white px-2 py-1 rounded hover:bg-slate-800">{t.addDesignOption}</button>
-                        </form>
-                      </details>
                     </div>
                   );
                 })}
               </div>
             )}
-
-            <details className="bg-slate-50 border border-slate-200 rounded p-4">
-              <summary className="cursor-pointer font-medium text-slate-900">{t.addDesignCategory}</summary>
-              <form action={async () => { "use server"; }} method="POST" className="mt-4 space-y-3">
-                <input type="hidden" name="garmentTypeId" value={garmentType.id} />
-                <input type="text" name="code" placeholder="Category code" className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md" required />
-                <input type="text" name="labelFa" placeholder="Dari label" className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md" required />
-                <input type="text" name="labelPs" placeholder="Pashto label" className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md" required />
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" name="isRequired" className="w-4 h-4" />
-                  <span className="text-sm text-slate-700">{t.isRequired}</span>
-                </label>
-                <button type="submit" className="text-sm rounded-md bg-slate-900 text-white px-3 py-1.5 hover:bg-slate-800">{t.addDesignCategory}</button>
-              </form>
-            </details>
           </div>
+
+          {/* Forms for adding fields and categories */}
+          <GarmentConfigForms locale={locale} garmentTypeId={garmentType.id} fields={fields} categories={categories} options={options} translations={t} />
         </div>
       </div>
     </div>

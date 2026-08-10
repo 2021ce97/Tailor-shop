@@ -1,6 +1,7 @@
-import "server-only";
+"use server";
+
 import { db, garmentTypes, garmentMeasurementFields, garmentDesignCategories, garmentDesignOptions } from "@/lib/db";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export interface GarmentTypeFormState {

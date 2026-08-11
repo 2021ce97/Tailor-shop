@@ -110,7 +110,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
           </form>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
+        <div className="mobile-table-scroll mt-4 rounded-lg border border-slate-200">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-medium uppercase text-slate-500">
               <tr>
@@ -146,7 +146,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
       <section>
         <h2 className="text-sm font-semibold text-slate-900 mb-3">{t.profitLoss}</h2>
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="mobile-table-scroll rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <tbody>
               <tr className="border-b border-slate-200 bg-slate-50"><td className="px-4 py-2 font-semibold text-slate-700" colSpan={2}>{t.income}</td></tr>
@@ -176,7 +176,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
       <section>
         <h2 className="text-sm font-semibold text-slate-900 mb-3">{t.orderPipeline}</h2>
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="mobile-table-scroll rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
@@ -200,7 +200,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
       <section>
         <h2 className="text-sm font-semibold text-slate-900 mb-3">{t.overdue}</h2>
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="mobile-table-scroll rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">

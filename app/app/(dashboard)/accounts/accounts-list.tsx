@@ -2,11 +2,18 @@ import Link from "next/link";
 
 interface AccountsListProps {
   locale: "en" | "fa" | "ps";
-  contacts: any[];
-  t: Record<string, string>;
+  contacts: {
+    id: number;
+    name: string;
+    contactCode: string;
+    phone: string | null;
+    roles: unknown;
+    status: string;
+    outstandingBalance?: number;
+  }[];
 }
 
-export function AccountsList({ locale, contacts, t }: AccountsListProps) {
+export function AccountsList({ locale, contacts }: AccountsListProps) {
   const roles: Record<string, string> = {
     business: locale === "ps" ? "سوداګري" : "تجارت",
     supplier: locale === "ps" ? "عرضه کوونکی" : "تأمین‌کننده",
@@ -28,7 +35,7 @@ export function AccountsList({ locale, contacts, t }: AccountsListProps) {
           {locale === "ps" ? "کوم حساب نه ده" : "هیچ حسابی موجود نیست"}
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="mobile-table-scroll">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -40,6 +47,9 @@ export function AccountsList({ locale, contacts, t }: AccountsListProps) {
                 </th>
                 <th className="px-6 py-3 text-left font-medium text-slate-600">
                   {locale === "ps" ? "دندې" : "نقش‌ها"}
+                </th>
+                <th className="px-6 py-3 text-right font-medium text-slate-600">
+                  {locale === "ps" ? "باقي" : "باقی"}
                 </th>
                 <th className="px-6 py-3 text-left font-medium text-slate-600">
                   {locale === "ps" ? "حالت" : "وضعیت"}
@@ -78,6 +88,9 @@ export function AccountsList({ locale, contacts, t }: AccountsListProps) {
                         <span className="text-slate-400 text-xs">—</span>
                       )}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-right font-medium text-slate-900">
+                    {Number(contact.outstandingBalance || 0).toFixed(2)}
                   </td>
                   <td className="px-6 py-4">
                     <span

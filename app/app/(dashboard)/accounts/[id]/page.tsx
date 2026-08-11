@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth/get-session";
 import { getLocale, getTranslations } from "@/lib/i18n";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { payBusinessContact } from "@/app/actions/garment-management";
 import EditContactForm from "../edit-contact-form";
 
 interface PageProps {
@@ -38,6 +39,11 @@ export default async function AccountDetailPage({ params }: PageProps) {
     .from(contactAccountEntries)
     .where(eq(contactAccountEntries.businessContactId, Number(id)))
     .orderBy(desc(contactAccountEntries.entryDate));
+
+  const outstandingBalance = entries.reduce(
+    (sum, entry) => sum + Number(entry.debitAmount || 0) - Number(entry.creditAmount || 0),
+    0
+  );
 
   const headerBg =
     locale === "ps"
@@ -150,6 +156,52 @@ export default async function AccountDetailPage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* Worker Payment */}
+        {outstandingBalance > 0 && (
+          <form action={payBusinessContact} className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
+            <input type="hidden" name="businessContactId" value={contact.id} />
+            <div>
+              <h2 className="font-semibold text-slate-900">
+                {locale === "ps" ? "د کارګر پیسې ورکړئ" : "پرداخت حساب کارگر"}
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                {locale === "ps" ? "باقي پیسې: " : "باقی حساب: "}
+                <span className="font-semibold text-slate-900">{outstandingBalance.toFixed(2)} AFN</span>
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="space-y-1 text-sm">
+                <span className="font-medium text-slate-700">{locale === "ps" ? "مقدار" : "مبلغ"}</span>
+                <input
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max={outstandingBalance.toFixed(2)}
+                  defaultValue={outstandingBalance.toFixed(2)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2"
+                  required
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="font-medium text-slate-700">{locale === "ps" ? "طریقه" : "روش پرداخت"}</span>
+                <select name="paymentMethod" className="w-full rounded-md border border-slate-300 px-3 py-2">
+                  <option value="cash">{locale === "ps" ? "نغدي" : "نقد"}</option>
+                  <option value="bank">{locale === "ps" ? "بانک" : "بانک"}</option>
+                </select>
+              </label>
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                  {locale === "ps" ? "پرداخت ثبت کړئ" : "ثبت پرداخت"}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+
         {/* Account Ledger */}
         {entries.length > 0 && (
           <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
@@ -158,7 +210,7 @@ export default async function AccountDetailPage({ params }: PageProps) {
                 {locale === "ps" ? "حساب لیجر" : "دفترچہ حسابات"}
               </h2>
             </div>
-            <div className="overflow-x-auto">
+            <div className="mobile-table-scroll">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-left text-xs font-medium text-slate-600 uppercase">
                   <tr>

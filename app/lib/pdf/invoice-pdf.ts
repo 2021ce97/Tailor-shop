@@ -53,6 +53,10 @@ function money(n: number, currencyCode?: string) {
   return currencyCode ? `${currencyCode} ${formatted}` : formatted;
 }
 
+function pdfText(value: string | number | null | undefined) {
+  return String(value ?? "").replace(/[^\x20-\x7E]/g, "?");
+}
+
 export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -71,7 +75,8 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
   const amber50 = rgb(1, 0.97, 0.9);
 
   const drawWrapped = (text: string, x: number, startY: number, maxWidth: number, size: number, fontFace = font, color = slate900) => {
-    const words = text.split(/\s+/);
+    const safeText = pdfText(text);
+    const words = safeText.split(/\s+/);
     const lines: string[] = [];
     let line = "";
     for (const word of words) {
@@ -81,7 +86,7 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
       else lines.push(word.slice(0, Math.max(1, Math.floor(maxWidth / (size * 0.55)))));
     }
     if (line) lines.push(line);
-    lines.forEach((value, index) => page.drawText(value, { x, y: startY - index * (size + 3), size, font: fontFace, color }));
+    lines.forEach((value, index) => page.drawText(pdfText(value), { x, y: startY - index * (size + 3), size, font: fontFace, color }));
     return Math.max(1, lines.length) * (size + 3);
   };
 
@@ -129,24 +134,25 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
   }
 
   // --- Header ---
-  const brandX = input.logoUrl ? MARGIN + 52 : MARGIN;
-  page.drawText(input.shopName, { x: brandX, y, size: 18, font: fontBold, color: slate900 });
+  const brandX = logoEmbedded ? MARGIN + 52 : MARGIN;
+  page.drawText(pdfText(input.shopName), { x: brandX, y, size: 18, font: fontBold, color: slate900 });
   y -= 16;
   if (input.shopAddress) {
-    page.drawText(input.shopAddress.slice(0, 90), { x: brandX, y, size: 9, font, color: slate600 });
+    page.drawText(pdfText(input.shopAddress).slice(0, 90), { x: brandX, y, size: 9, font, color: slate600 });
     y -= 12;
   }
   const contactBits = [input.shopPhone, input.shopEmail].filter(Boolean).join("  ·  ");
   if (contactBits) {
-    page.drawText(contactBits.slice(0, 90), { x: brandX, y, size: 9, font, color: slate600 });
+    page.drawText(pdfText(contactBits).slice(0, 90), { x: brandX, y, size: 9, font, color: slate600 });
   }
 
   const rightX = PAGE_WIDTH - MARGIN;
   let ry = PAGE_HEIGHT - MARGIN;
   const rightText = (str: string, size: number, bold = false, color = slate900) => {
+    const safeStr = pdfText(str);
     const f = bold ? fontBold : font;
-    const w = f.widthOfTextAtSize(str, size);
-    page.drawText(str, { x: rightX - w, y: ry, size, font: f, color });
+    const w = f.widthOfTextAtSize(safeStr, size);
+    page.drawText(safeStr, { x: rightX - w, y: ry, size, font: f, color });
     ry -= size + 4;
   };
   rightText(input.documentTypeLabel.toUpperCase(), 12, true);
@@ -159,12 +165,12 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
   y -= 24;
 
   // --- Party block ---
-  page.drawText(input.partyLabel.toUpperCase(), { x: MARGIN, y, size: 8, font: fontBold, color: slate400 });
+  page.drawText(pdfText(input.partyLabel.toUpperCase()), { x: MARGIN, y, size: 8, font: fontBold, color: slate400 });
   y -= 14;
   y -= drawWrapped(input.partyName, MARGIN, y, 220, 12, fontBold, slate900);
   y -= 15;
   for (const line of [input.partyPhone, input.partyEmail].filter(Boolean) as string[]) {
-    page.drawText(line, { x: MARGIN, y, size: 9, font, color: slate600 });
+    page.drawText(pdfText(line), { x: MARGIN, y, size: 9, font, color: slate600 });
     y -= 12;
   }
   y -= 10;
@@ -177,8 +183,8 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
     for (const f of input.fields) {
       const x = MARGIN + col * colWidth;
       if (col === 0) rowStartY = y;
-      page.drawText(f.label.toUpperCase(), { x, y: rowStartY, size: 7, font: fontBold, color: slate400 });
-      drawWrapped(f.value || "—", x, rowStartY - 11, colWidth - 12, 9, font, slate900);
+      page.drawText(pdfText(f.label.toUpperCase()), { x, y: rowStartY, size: 7, font: fontBold, color: slate400 });
+      drawWrapped(f.value || "-", x, rowStartY - 11, colWidth - 12, 9, font, slate900);
       col++;
       if (col === 3) {
         col = 0;
@@ -201,14 +207,13 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
 
   for (const item of input.lineItems) {
     ensureSpace(28);
-    page.drawText(item.label.slice(0, 55), { x: MARGIN, y, size: 10, font, color: slate900 });
-    const amountStr = money(item.amount, input.currencyCode);
+    page.drawText(pdfText(item.label).slice(0, 55), { x: MARGIN, y, size: 10, font, color: slate900 });
+    const amountStr = pdfText(money(item.amount, input.currencyCode));
     const amountW = fontBold.widthOfTextAtSize(amountStr, 10);
     page.drawText(amountStr, { x: PAGE_WIDTH - MARGIN - amountW, y, size: 10, font: fontBold, color: slate900 });
     y -= 13;
     if (item.detail) {
-      page.drawText(item.detail.slice(0, 75), { x: MARGIN, y, size: 8, font, color: slate600 });
-      y -= 13;
+      y -= drawWrapped(item.detail, MARGIN, y, PAGE_WIDTH - 2 * MARGIN - 90, 8, font, slate600);
     }
     y -= 5;
   }
@@ -220,7 +225,7 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
   // --- Subtotal / discount / tax breakdown, if provided ---
   const summaryRow = (label: string, value: number) => {
     ensureSpace(16);
-    const valStr = money(value, input.currencyCode);
+    const valStr = pdfText(money(value, input.currencyCode));
     const valW = font.widthOfTextAtSize(valStr, 9);
     page.drawText(label, { x: PAGE_WIDTH - MARGIN - 190, y, size: 9, font, color: slate600 });
     page.drawText(valStr, { x: PAGE_WIDTH - MARGIN - valW, y, size: 9, font, color: slate900 });
@@ -234,7 +239,7 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
   ensureSpace(60);
   page.drawRectangle({ x: PAGE_WIDTH - MARGIN - 190, y: y - 8, width: 190, height: 30, color: emerald50 });
   page.drawText("TOTAL", { x: PAGE_WIDTH - MARGIN - 180, y: y + 2, size: 9, font: fontBold, color: emerald700 });
-  const totalStr = money(input.totalAmount, input.currencyCode);
+  const totalStr = pdfText(money(input.totalAmount, input.currencyCode));
   const totalW = fontBold.widthOfTextAtSize(totalStr, 13);
   page.drawText(totalStr, { x: PAGE_WIDTH - MARGIN - 10 - totalW, y: y - 1, size: 13, font: fontBold, color: emerald700 });
   y -= 40;
@@ -248,7 +253,7 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
     const boxX = PAGE_WIDTH - MARGIN - 190;
     // If paid exists, draw it as a simple right-aligned row above the balance box
     if (paidExists) {
-      const paidStr = money(input.amountPaid as number, input.currencyCode);
+      const paidStr = pdfText(money(input.amountPaid as number, input.currencyCode));
       const paidW = font.widthOfTextAtSize(paidStr, 9);
       page.drawText("Paid", { x: boxX + 8, y: y, size: 9, font: font, color: slate600 });
       page.drawText(paidStr, { x: PAGE_WIDTH - MARGIN - paidW, y: y, size: 9, font: fontBold, color: slate900 });
@@ -259,7 +264,7 @@ export async function generateInvoicePdf(input: InvoicePdfInput): Promise<Uint8A
       // Balance is emphasized in an amber box
       page.drawRectangle({ x: boxX, y: y - 8, width: 190, height: 36, color: amber50 });
       page.drawText("BALANCE DUE", { x: boxX + 8, y: y + 6, size: 9, font: fontBold, color: amber700 });
-      const balStr = money(input.balanceDue as number, input.currencyCode);
+      const balStr = pdfText(money(input.balanceDue as number, input.currencyCode));
       const balW = fontBold.widthOfTextAtSize(balStr, 11);
       page.drawText(balStr, { x: PAGE_WIDTH - MARGIN - 10 - balW, y: y - 2, size: 13, font: fontBold, color: amber700 });
       y -= 44;

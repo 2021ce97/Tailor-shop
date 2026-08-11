@@ -17,3 +17,15 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+/* Tables remain readable on narrow screens instead of squeezing their columns. */
+@media (max-width: 639px) {
+  .mobile-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-table-scroll > table {
+    min-width: 680px;
+  }
+}

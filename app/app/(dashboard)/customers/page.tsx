@@ -18,7 +18,7 @@ export default async function CustomersPage() {
 
       <CustomerForm translations={t} />
 
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-lg mobile-table-scroll">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">

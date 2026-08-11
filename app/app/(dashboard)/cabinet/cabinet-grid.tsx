@@ -1,25 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { getStoredGarments, removeGarmentFromStorage } from "@/app/actions/cabinet";
-import type { storageLocations } from "@/lib/db";
+import { getStoredGarments } from "@/app/actions/cabinet";
+
+interface CabinetLocation {
+  id: number;
+  code: string;
+  capacityGarments: number;
+  occupiedGarments: number;
+}
+
+interface StoredGarment {
+  assignmentId: number;
+  ticketNo: string;
+  garmentType: {
+    code?: string;
+    nameFa?: string;
+    namePs?: string;
+  } | null;
+}
 
 interface CabinetGridProps {
   locale: "en" | "fa" | "ps";
-  locations: any[];
-  t: Record<string, string>;
+  locations: CabinetLocation[];
 }
 
-export function CabinetGrid({ locale, locations, t }: CabinetGridProps) {
+export function CabinetGrid({ locale, locations }: CabinetGridProps) {
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
-  const [storedGarments, setStoredGarments] = useState<any[]>([]);
+  const [storedGarments, setStoredGarments] = useState<StoredGarment[]>([]);
   const [loading, setLoading] = useState(false);
+
+  function normalizeGarmentType(value: unknown): StoredGarment["garmentType"] {
+    if (!value || typeof value !== "object") return null;
+    const snapshot = value as Record<string, unknown>;
+    return {
+      code: typeof snapshot.code === "string" ? snapshot.code : undefined,
+      nameFa: typeof snapshot.nameFa === "string" ? snapshot.nameFa : undefined,
+      namePs: typeof snapshot.namePs === "string" ? snapshot.namePs : undefined,
+    };
+  }
 
   async function handleLocationClick(locationId: number) {
     setLoading(true);
     try {
       const garments = await getStoredGarments(locationId);
-      setStoredGarments(garments);
+      setStoredGarments(
+        garments.map((garment) => ({
+          assignmentId: garment.assignmentId,
+          ticketNo: garment.ticketNo,
+          garmentType: normalizeGarmentType(garment.garmentType),
+        }))
+      );
       setSelectedLocationId(locationId);
     } catch (error) {
       console.error("Failed to load garments:", error);
@@ -134,11 +165,6 @@ export function CabinetGrid({ locale, locations, t }: CabinetGridProps) {
                       {garment.garmentType?.nameFa || "—"}
                     </div>
                   </div>
-                  <RemoveGarmentButton
-                    garmentItemId={garment.garmentItemId}
-                    ticketNo={garment.ticketNo}
-                    locale={locale}
-                  />
                 </div>
               </div>
             ))}
@@ -149,39 +175,3 @@ export function CabinetGrid({ locale, locations, t }: CabinetGridProps) {
   );
 }
 
-function RemoveGarmentButton({
-  garmentItemId,
-  ticketNo,
-  locale,
-}: {
-  garmentItemId: number;
-  ticketNo: string;
-  locale: "en" | "fa" | "ps";
-}) {
-  const [isPending, setIsPending] = useState(false);
-
-  async function handleRemove() {
-    if (!confirm(locale === "ps" ? "ډاډ یاست؟" : "آیا مطمئن هستید؟")) return;
-    setIsPending(true);
-    try {
-      const result = await removeGarmentFromStorage(garmentItemId);
-      if (result.status === "error") {
-        alert(result.message);
-      }
-    } catch (error) {
-      alert(locale === "ps" ? "خرابي" : "خطا");
-    } finally {
-      setIsPending(false);
-    }
-  }
-
-  return (
-    <button
-      onClick={handleRemove}
-      disabled={isPending}
-      className="ml-2 text-xs text-red-600 hover:text-red-900 disabled:opacity-50"
-    >
-      {isPending ? "…" : "×"}
-    </button>
-  );
-}

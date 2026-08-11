@@ -71,7 +71,7 @@ export default async function TailorOrdersPage({ searchParams }: { searchParams?
         </Link>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+      <div className="mobile-table-scroll bg-white border border-slate-200 rounded-lg">
         <form className="border-b border-slate-200 p-3"><input name="q" defaultValue={q} placeholder="Search by customer, phone, customer ID, order or garment ticket" className="w-full max-w-lg rounded-md border border-slate-300 px-3 py-2 text-sm" /></form>
         <table className="w-full text-sm">
           <thead>

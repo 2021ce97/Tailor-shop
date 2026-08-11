@@ -46,7 +46,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 </span>
                 <span className="text-xs text-slate-400">{p.takenAt}</span>
               </div>
-              <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                 {Object.entries(p.measurements as Record<string, string>).map(([k, v]) => (
                   <div key={k}>
                     <div className="text-slate-400 capitalize">{k.replace(/_/g, " ")}</div>
@@ -63,7 +63,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       <section>
         <h2 className="text-sm font-semibold text-slate-900 mb-3">Tailor Orders</h2>
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-lg mobile-table-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">

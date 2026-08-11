@@ -27,10 +27,10 @@ export function SettingsForm({
   const [state, formAction, isPending] = useActionState(updateShopSettings, initialState);
 
   return (
-    <form action={formAction} className="bg-white border border-slate-200 rounded-lg p-5 space-y-4 max-w-2xl">
+    <form action={formAction} className="bg-white border border-slate-200 rounded-lg p-5 space-y-4 max-w-2xl w-full">
       {state.status === "success" && <div className="rounded-md bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm text-emerald-800">{state.message}</div>}
       {state.status === "error" && state.message && <div className="rounded-md bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-800">{state.message}</div>}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Shop Name" name="shopName" required defaultValue={shopName} error={state.fieldErrors?.shopName} />
         <Field label="Phone" name="phone" defaultValue={phone ?? ""} />
         <Field label="Email" name="email" type="email" defaultValue={email ?? ""} error={state.fieldErrors?.email} />

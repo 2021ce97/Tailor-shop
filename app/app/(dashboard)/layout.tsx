@@ -38,8 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         { href: "/dashboard", label: t.dashboard, icon: LayoutDashboard },
         { href: "/tailor-orders/new", label: t.newOrder, icon: Scissors },
         { href: "/tailor-orders", label: t.ordersReport, icon: TrendingUp },
-        { href: "/garment-config", label: t.garmentConfig, icon: Settings },
-        { href: "/settings", label: t.settings, icon: Settings },
+        { href: "/settings", label: "Setting & Garment Configuration", icon: Settings },
       ],
     },
     {
@@ -66,7 +65,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen">
-      <aside className="w-64 shrink-0 border-r border-slate-200 bg-white flex flex-col">
+      <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
         <div className="h-16 flex items-center gap-2 px-5 border-b border-slate-200">
           <div className="h-8 w-8 rounded-md bg-slate-900 flex items-center justify-center text-white font-semibold text-sm">
             T
@@ -99,13 +98,27 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </nav>
       </aside>
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6">
+        <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between gap-3 px-3 sm:px-6">
           <div className="flex items-center gap-3">
+            <details className="relative lg:hidden">
+              <summary className="cursor-pointer list-none rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700">Menu</summary>
+              <nav className="absolute start-0 top-11 z-30 max-h-[75vh] w-72 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3 shadow-xl">
+                {localizedNav.map((group) => (
+                  <div key={group.section} className="mb-4 last:mb-0">
+                    <div className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{group.section}</div>
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      return <Link key={item.href} href={item.href} className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100"><Icon className="size-4" />{item.label}</Link>;
+                    })}
+                  </div>
+                ))}
+              </nav>
+            </details>
             <span className="text-sm text-slate-500">{t.tailoringWorkspace}</span>
             <LanguageSwitcher locale={locale} label={t.language} />
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500">{session.name}</span>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <span className="hidden text-sm text-slate-500 sm:inline">{session.name}</span>
             <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-medium text-slate-600">
               {initials(session.name)}
             </div>
@@ -116,7 +129,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </form>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-6 bg-slate-50">{children}</main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 p-3 sm:p-6">{children}</main>
       </div>
     </div>
   );

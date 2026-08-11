@@ -24,35 +24,21 @@ export async function getStorageLocationsWithOccupancy(branchId: number) {
     const locationsWithOccupancy = await Promise.all(
       locations.map(async (location) => {
         const occupiedGarments = await db
-          .select()
+          .select({ garmentItemId: garmentStorageAssignments.garmentItemId, tailorOrderId: tailorOrderItems.tailorOrderId })
           .from(garmentStorageAssignments)
-          .where(
-            and(
-              eq(garmentStorageAssignments.storageLocationId, location.id),
-              isNull(garmentStorageAssignments.removedAt)
-            )
-          );
+          .innerJoin(tailorOrderItems, eq(tailorOrderItems.id, garmentStorageAssignments.garmentItemId))
+          .where(and(eq(garmentStorageAssignments.storageLocationId, location.id), isNull(garmentStorageAssignments.removedAt)));
+        const occupiedOrders = new Set(occupiedGarments.map((assignment) => assignment.tailorOrderId)).size;
 
         return {
           ...location,
           occupiedGarments: occupiedGarments.length,
-          occupiedOrders: new Set(
-            occupiedGarments.map(async (assignment) => {
-              const item = await db
-                .select()
-                .from(tailorOrderItems)
-                .where(eq(tailorOrderItems.id, assignment.garmentItemId));
-              return item[0]?.tailorOrderId;
-            })
-          ).size,
+          occupiedOrders,
           garmentsAvailable: Math.max(
             0,
             (location.capacityGarments || 20) - occupiedGarments.length
           ),
-          ordersAvailable: Math.max(0, (location.capacityOrders || 10) - new Set(occupiedGarments.map(async (a) => {
-            const item = await db.select().from(tailorOrderItems).where(eq(tailorOrderItems.id, a.garmentItemId));
-            return item[0]?.tailorOrderId;
-          })).size),
+          ordersAvailable: Math.max(0, (location.capacityOrders || 10) - occupiedOrders),
         };
       })
     );

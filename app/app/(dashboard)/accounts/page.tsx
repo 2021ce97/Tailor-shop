@@ -1,6 +1,8 @@
 import { requireSession } from "@/lib/auth/get-session";
 import { getLocale, getTranslations } from "@/lib/i18n";
 import { cookies } from "next/headers";
+import { eq } from "drizzle-orm";
+import { db, contactAccountEntries } from "@/lib/db";
 import { getBusinessContacts } from "@/app/actions/business-contacts";
 import { AccountsList } from "./accounts-list";
 import { CreateContactForm } from "./create-contact-form";
@@ -11,6 +13,19 @@ export default async function AccountsPage() {
   const t = getTranslations(locale);
 
   const contacts = await getBusinessContacts(session.branchId);
+  const contactsWithBalances = await Promise.all(
+    contacts.map(async (contact) => {
+      const entries = await db
+        .select()
+        .from(contactAccountEntries)
+        .where(eq(contactAccountEntries.businessContactId, contact.id));
+      const outstandingBalance = entries.reduce(
+        (sum, entry) => sum + Number(entry.debitAmount || 0) - Number(entry.creditAmount || 0),
+        0
+      );
+      return { ...contact, outstandingBalance };
+    })
+  );
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -35,7 +50,7 @@ export default async function AccountsPage() {
 
         {/* Contacts List */}
         <div className="lg:col-span-2">
-          <AccountsList locale={locale} contacts={contacts} t={t} />
+          <AccountsList locale={locale} contacts={contactsWithBalances} />
         </div>
       </div>
     </div>

@@ -8,7 +8,8 @@ import Link from "next/link";
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ ticket?: string }> }) {
   const session = await requireSession();
-  const t = getTranslations(getLocale((await cookies()).get("tailor_locale")?.value));
+  const locale = getLocale((await cookies()).get("tailor_locale")?.value);
+  const t = getTranslations(locale);
   const ticket = (await searchParams).ticket?.trim() ?? "";
   const [ordersInProgress] = await db.execute<{ [k: string]: unknown; count: string }>(
     sql`SELECT COUNT(*) AS count FROM tailor_orders WHERE status = 'in_progress'`
@@ -49,9 +50,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         })}
       </div>
       <section className="mt-7 max-w-3xl rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold text-slate-900">{t.dashboard === "صفحه اصلی" ? "پیگیری لباس" : "Garment tracking"}</h2>
-        <form className="mt-3 flex gap-2"><input name="ticket" defaultValue={ticket} placeholder={t.dashboard === "صفحه اصلی" ? "شماره لباس یا تکت" : "Garment ticket number"} className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm" /><button className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white">{t.dashboard === "صفحه اصلی" ? "جستجو" : "Search"}</button></form>
-        {ticket && (tracking.length ? tracking.map((row) => <div key={row.ticketNo} className="mt-4 grid gap-2 rounded-lg bg-slate-50 p-4 text-sm sm:grid-cols-3"><div><span className="text-slate-400">{t.orderId}</span><div className="font-medium">{row.ticketNo}</div></div><div><span className="text-slate-400">{t.stage}</span><div className="font-medium">{row.stage}</div></div><div><span className="text-slate-400">{t.customer}</span><div className="font-medium">{row.customer}</div></div><div><span className="text-slate-400">Location</span><div>{row.location ?? "—"}</div></div><div><span className="text-slate-400">{t.promisedDate}</span><div>{row.promisedDate ?? "—"}</div></div><div><span className="text-slate-400">{t.balanceDue}</span><div>{Number(row.balanceDue).toFixed(2)} AFN</div></div></div>) : <p className="mt-3 text-sm text-slate-500">No garment found.</p>)}
+        <h2 className="font-semibold text-slate-900">{t.tracking}</h2>
+        <form className="mt-3 flex gap-2"><input name="ticket" defaultValue={ticket} placeholder={t.garmentTicketNumber} className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm" /><button className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white">{t.search}</button></form>
+        {ticket && (tracking.length ? tracking.map((row) => <div key={row.ticketNo} className="mt-4 grid gap-2 rounded-lg bg-slate-50 p-4 text-sm sm:grid-cols-3"><div><span className="text-slate-400">{t.orderId}</span><div className="font-medium">{row.ticketNo}</div></div><div><span className="text-slate-400">{t.stage}</span><div className="font-medium">{row.stage}</div></div><div><span className="text-slate-400">{t.customer}</span><div className="font-medium">{row.customer}</div></div><div><span className="text-slate-400">{t.location}</span><div>{row.location ?? "—"}</div></div><div><span className="text-slate-400">{t.promisedDate}</span><div>{row.promisedDate ?? "—"}</div></div><div><span className="text-slate-400">{t.balanceDue}</span><div>{Number(row.balanceDue).toFixed(2)} AFN</div></div></div>) : <p className="mt-3 text-sm text-slate-500">{t.noGarmentFound}</p>)}
       </section>
     </div>
   );

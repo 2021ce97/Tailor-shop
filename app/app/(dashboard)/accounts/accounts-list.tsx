@@ -15,24 +15,29 @@ interface AccountsListProps {
 
 export function AccountsList({ locale, contacts }: AccountsListProps) {
   const roles: Record<string, string> = {
-    business: locale === "ps" ? "سوداګري" : "تجارت",
-    supplier: locale === "ps" ? "عرضه کوونکی" : "تأمین‌کننده",
-    tailor: locale === "ps" ? "خیاط" : "خیاط",
-    cutter: locale === "ps" ? "قیچي کوونکی" : "برش‌کار",
+    business: locale === "en" ? "Business" : locale === "fa" ? "تجارت" : "سوداګري",
+    supplier: locale === "en" ? "Supplier" : locale === "fa" ? "تأمین‌کننده" : "عرضه کوونکی",
+    tailor: locale === "en" ? "Tailor" : locale === "fa" ? "خیاط" : "خیاط",
+    cutter: locale === "en" ? "Cutter" : locale === "fa" ? "برش‌کار" : "قیچي کوونکی",
   };
+  const text = locale === "en"
+    ? { all: "All accounts", none: "No accounts found.", name: "Name", phone: "Phone", roles: "Roles", outstanding: "Outstanding", status: "Status", active: "Active", inactive: "Inactive" }
+    : locale === "fa"
+      ? { all: "تمام حساب‌ها", none: "هیچ حسابی موجود نیست.", name: "نام", phone: "تماس", roles: "نقش‌ها", outstanding: "باقی", status: "وضعیت", active: "فعال", inactive: "غیرفعال" }
+      : { all: "ټول حسابونه", none: "هیڅ حساب نشته.", name: "نوم", phone: "ټیلیفون", roles: "دندې", outstanding: "باقي", status: "حالت", active: "فعال", inactive: "غیرفعال" };
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-200">
         <h2 className="font-semibold text-slate-900">
-          {locale === "ps" ? "تمام حسابات" : "تمام حساب‌ها"}
+          {text.all}
           <span className="ml-2 text-sm text-slate-500">({contacts.length})</span>
         </h2>
       </div>
 
       {contacts.length === 0 ? (
         <div className="px-6 py-12 text-center text-slate-500 text-sm">
-          {locale === "ps" ? "کوم حساب نه ده" : "هیچ حسابی موجود نیست"}
+          {text.none}
         </div>
       ) : (
         <div className="mobile-table-scroll">
@@ -40,19 +45,19 @@ export function AccountsList({ locale, contacts }: AccountsListProps) {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3 text-left font-medium text-slate-600">
-                  {locale === "ps" ? "نام" : "نام"}
+                  {text.name}
                 </th>
                 <th className="px-6 py-3 text-left font-medium text-slate-600">
-                  {locale === "ps" ? "ټیلیفون" : "تماس"}
+                  {text.phone}
                 </th>
                 <th className="px-6 py-3 text-left font-medium text-slate-600">
-                  {locale === "ps" ? "دندې" : "نقش‌ها"}
+                  {text.roles}
                 </th>
                 <th className="px-6 py-3 text-right font-medium text-slate-600">
-                  {locale === "ps" ? "باقي" : "باقی"}
+                  {text.outstanding}
                 </th>
                 <th className="px-6 py-3 text-left font-medium text-slate-600">
-                  {locale === "ps" ? "حالت" : "وضعیت"}
+                  {text.status}
                 </th>
               </tr>
             </thead>
@@ -101,12 +106,8 @@ export function AccountsList({ locale, contacts }: AccountsListProps) {
                       }`}
                     >
                       {contact.status === "active"
-                        ? locale === "ps"
-                          ? "چالو"
-                          : "فعال"
-                        : locale === "ps"
-                          ? "بند"
-                          : "غیرفعال"}
+                        ? text.active
+                        : text.inactive}
                     </span>
                   </td>
                 </tr>

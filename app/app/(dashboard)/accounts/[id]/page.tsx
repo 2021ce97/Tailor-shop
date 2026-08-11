@@ -49,6 +49,11 @@ export default async function AccountDetailPage({ params }: PageProps) {
     locale === "ps"
       ? "from-purple-50 via-slate-50 to-pink-50"
       : "from-blue-50 via-slate-50 to-indigo-50";
+  const text = locale === "en"
+    ? { accountCode: "Account code: ", active: "Active", inactive: "Inactive", debit: "Debit", credit: "Credit" }
+    : locale === "fa"
+      ? { accountCode: "کد حساب: ", active: "فعال", inactive: "غیرفعال", debit: "بدهی", credit: "اعتبار" }
+      : { accountCode: "د حساب کوډ: ", active: "فعال", inactive: "غیرفعال", debit: "بدهکار", credit: "بستانکار" };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -56,7 +61,7 @@ export default async function AccountDetailPage({ params }: PageProps) {
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">{contact.name}</h1>
           <p className="text-slate-600 text-sm">
-            {locale === "ps" ? "حساب کد: " : "رمز حساب: "}
+            {text.accountCode}
             <span className="font-mono font-medium text-slate-900">{contact.contactCode}</span>
           </p>
         </div>
@@ -67,7 +72,7 @@ export default async function AccountDetailPage({ params }: PageProps) {
         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
             <h2 className="font-semibold text-slate-900">
-              {locale === "ps" ? "تفصیلات تدوین کریں" : "تدوین تفاصیل"}
+              {t.editDetails}
             </h2>
           </div>
           <EditContactForm 
@@ -84,20 +89,20 @@ export default async function AccountDetailPage({ params }: PageProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h3 className="font-semibold text-slate-900 mb-4">
-              {locale === "ps" ? "رابطہ معلومات" : "اطلاعات تماس"}
+              {t.contactInfo}
             </h3>
             <dl className="space-y-3">
               <div>
                 <dt className="text-xs font-medium text-slate-500 uppercase">
-                  {locale === "ps" ? "ٹیلیفون" : "شماره تماس"}
+                  {t.phone}
                 </dt>
                 <dd className="text-sm text-slate-900">
-                  {contact.phone || (locale === "ps" ? "ثبت نہیں شدہ" : "ثبت نشده")}
+                  {contact.phone || t.notRecorded}
                 </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500 uppercase">
-                  {locale === "ps" ? "دندے" : "نقش‌ها"}
+                  {t.roles}
                 </dt>
                 <dd className="flex flex-wrap gap-2 mt-2">
                   {Array.isArray(contact.roles) && contact.roles.length > 0 ? (
@@ -111,14 +116,14 @@ export default async function AccountDetailPage({ params }: PageProps) {
                     ))
                   ) : (
                     <span className="text-slate-500">
-                      {locale === "ps" ? "کوئی نقش تفویض نہیں" : "بدون نقش"}
+                      {t.noRoles}
                     </span>
                   )}
                 </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500 uppercase">
-                  {locale === "ps" ? "حالت" : "وضعیت"}
+                  {t.status}
                 </dt>
                 <dd>
                   <span
@@ -129,12 +134,8 @@ export default async function AccountDetailPage({ params }: PageProps) {
                     }`}
                   >
                     {contact.status === "active"
-                      ? locale === "ps"
-                        ? "فعال"
-                        : "فعال"
-                      : locale === "ps"
-                        ? "غیر فعال"
-                        : "غیرفعال"}
+                      ? text.active
+                      : text.inactive}
                   </span>
                 </dd>
               </div>
@@ -144,12 +145,12 @@ export default async function AccountDetailPage({ params }: PageProps) {
           {/* Notes */}
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <h3 className="font-semibold text-slate-900 mb-4">
-              {locale === "ps" ? "یادداشتیں" : "یادداشت‌ها"}
+              {t.notes}
             </h3>
             <p className="text-sm text-slate-700 whitespace-pre-wrap">
               {contact.notes || (
                 <span className="text-slate-400">
-                  {locale === "ps" ? "کوئی یادداشت نہیں" : "بدون یادداشت"}
+                  {t.noNotes}
                 </span>
               )}
             </p>
@@ -162,16 +163,16 @@ export default async function AccountDetailPage({ params }: PageProps) {
             <input type="hidden" name="businessContactId" value={contact.id} />
             <div>
               <h2 className="font-semibold text-slate-900">
-                {locale === "ps" ? "د کارګر پیسې ورکړئ" : "پرداخت حساب کارگر"}
+                {t.payWorker}
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                {locale === "ps" ? "باقي پیسې: " : "باقی حساب: "}
+                {t.outstandingBalance}:{" "}
                 <span className="font-semibold text-slate-900">{outstandingBalance.toFixed(2)} AFN</span>
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">{locale === "ps" ? "مقدار" : "مبلغ"}</span>
+                <span className="font-medium text-slate-700">{t.amount}</span>
                 <input
                   name="amount"
                   type="number"
@@ -184,10 +185,10 @@ export default async function AccountDetailPage({ params }: PageProps) {
                 />
               </label>
               <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">{locale === "ps" ? "طریقه" : "روش پرداخت"}</span>
+                <span className="font-medium text-slate-700">{t.paymentMethod}</span>
                 <select name="paymentMethod" className="w-full rounded-md border border-slate-300 px-3 py-2">
-                  <option value="cash">{locale === "ps" ? "نغدي" : "نقد"}</option>
-                  <option value="bank">{locale === "ps" ? "بانک" : "بانک"}</option>
+                  <option value="cash">{t.cash}</option>
+                  <option value="bank">{t.bank}</option>
                 </select>
               </label>
               <div className="flex items-end">
@@ -195,7 +196,7 @@ export default async function AccountDetailPage({ params }: PageProps) {
                   type="submit"
                   className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
                 >
-                  {locale === "ps" ? "پرداخت ثبت کړئ" : "ثبت پرداخت"}
+                  {t.recordPayment}
                 </button>
               </div>
             </div>
@@ -207,18 +208,18 @@ export default async function AccountDetailPage({ params }: PageProps) {
           <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
               <h2 className="font-semibold text-slate-900">
-                {locale === "ps" ? "حساب لیجر" : "دفترچہ حسابات"}
+                {t.accountLedger}
               </h2>
             </div>
             <div className="mobile-table-scroll">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-left text-xs font-medium text-slate-600 uppercase">
                   <tr>
-                    <th className="px-6 py-3">{locale === "ps" ? "تاریخ" : "تاریخ"}</th>
-                    <th className="px-6 py-3">{locale === "ps" ? "قسم" : "نوع"}</th>
-                    <th className="px-6 py-3">{locale === "ps" ? "یادداشت" : "یادداشت"}</th>
-                    <th className="px-6 py-3 text-right">{locale === "ps" ? "نقل" : "بدهی"}</th>
-                    <th className="px-6 py-3 text-right">{locale === "ps" ? "جمع" : "اعتبار"}</th>
+                    <th className="px-6 py-3">{t.date}</th>
+                    <th className="px-6 py-3">{t.entryType}</th>
+                    <th className="px-6 py-3">{t.notes}</th>
+                    <th className="px-6 py-3 text-right">{text.debit}</th>
+                    <th className="px-6 py-3 text-right">{text.credit}</th>
                   </tr>
                 </thead>
                 <tbody>

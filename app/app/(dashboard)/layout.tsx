@@ -38,7 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         { href: "/dashboard", label: t.dashboard, icon: LayoutDashboard },
         { href: "/tailor-orders/new", label: t.newOrder, icon: Scissors },
         { href: "/tailor-orders", label: t.ordersReport, icon: TrendingUp },
-        { href: "/settings", label: "Setting & Garment Configuration", icon: Settings },
+        { href: "/settings", label: t.settingAndGarmentConfiguration, icon: Settings },
       ],
     },
     {

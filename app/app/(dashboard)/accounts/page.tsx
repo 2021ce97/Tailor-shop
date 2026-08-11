@@ -32,12 +32,10 @@ export default async function AccountsPage() {
       {/* Header */}
       <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-purple-50 via-slate-50 to-pink-50 p-6 shadow-sm">
         <h1 className="text-xl font-semibold text-slate-900">
-          {locale === "ps" ? "کاري حساب‌ات" : "حساب‌های کاری"}
+          {t.businessAccountTitle}
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          {locale === "ps"
-            ? "کارگران، تاجرین، او سپلائی‌کار"
-            : "کارگران، فروشندگان، و تأمین‌کنندگان"}
+          {t.businessAccountHelp}
         </p>
       </div>
 

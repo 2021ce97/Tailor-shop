@@ -18,6 +18,11 @@ const AVAILABLE_ROLES = [
 export function CreateContactForm({ locale, t }: CreateContactFormProps) {
   const [state, formAction, pending] = useActionState(createBusinessContact, { status: "idle" });
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const text = locale === "en"
+    ? { title: "New account", namePlaceholder: "Enter name", phonePlaceholder: "Enter phone", notesPlaceholder: "Enter notes", saving: "Saving...", save: "Save" }
+    : locale === "fa"
+      ? { title: "حساب جدید", namePlaceholder: "نام را وارد کنید", phonePlaceholder: "شماره تماس را وارد کنید", notesPlaceholder: "یادداشت را وارد کنید", saving: "در حال ثبت...", save: "ثبت کنید" }
+      : { title: "نوی حساب", namePlaceholder: "نوم ولیکئ", phonePlaceholder: "ټیلیفون ولیکئ", notesPlaceholder: "یادښت ولیکئ", saving: "خوندي کېږي...", save: "ثبت کړئ" };
 
   const handleRoleChange = (role: string) => {
     setSelectedRoles((prev) =>
@@ -29,7 +34,7 @@ export function CreateContactForm({ locale, t }: CreateContactFormProps) {
     <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
         <h2 className="font-semibold text-slate-900">
-          {locale === "ps" ? "نوی حساب" : "حساب جدید"}
+          {text.title}
         </h2>
       </div>
 
@@ -48,32 +53,32 @@ export function CreateContactForm({ locale, t }: CreateContactFormProps) {
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-slate-900">
-            {locale === "ps" ? "نام" : "نام"}
+            {t.name}
           </label>
           <input
             type="text"
             name="name"
             required
-            placeholder={locale === "ps" ? "نام درج کړئ" : "نام را وارد کنید"}
+            placeholder={text.namePlaceholder}
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
           />
         </div>
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-slate-900">
-            {locale === "ps" ? "ټیلیفون" : "شماره تماس"}
+            {t.phone}
           </label>
           <input
             type="tel"
             name="phone"
-            placeholder={locale === "ps" ? "ټیلیفون درج کړئ" : "شماره تماس را وارد کنید"}
+            placeholder={text.phonePlaceholder}
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
           />
         </div>
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-slate-900">
-            {locale === "ps" ? "دندې" : "نقش‌ها"}
+            {t.roles}
           </label>
           <div className="space-y-2">
             {AVAILABLE_ROLES.map((role) => (
@@ -99,11 +104,11 @@ export function CreateContactForm({ locale, t }: CreateContactFormProps) {
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-slate-900">
-            {locale === "ps" ? "یادداشت" : "یادداشت"}
+            {t.notes}
           </label>
           <textarea
             name="notes"
-            placeholder={locale === "ps" ? "یادداشت درج کړئ" : "یادداشت را وارد کنید"}
+            placeholder={text.notesPlaceholder}
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
             rows={3}
           />
@@ -114,13 +119,7 @@ export function CreateContactForm({ locale, t }: CreateContactFormProps) {
           disabled={pending}
           className="w-full px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 disabled:opacity-50"
         >
-          {pending
-            ? locale === "ps"
-              ? "کمزوری کېږي..."
-              : "در حال ثبت..."
-            : locale === "ps"
-              ? "ثبت کړئ"
-              : "ثبت کنید"}
+          {pending ? text.saving : text.save}
         </button>
       </form>
     </div>

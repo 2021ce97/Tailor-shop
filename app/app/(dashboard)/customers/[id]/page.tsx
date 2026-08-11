@@ -3,10 +3,19 @@ import { db, customers, measurementProfiles, measurementTemplates, tailorOrders 
 import { eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { MeasurementForm } from "./measurement-form";
+import { cookies } from "next/headers";
+import { getLocale, getTranslations } from "@/lib/i18n";
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const customerId = Number(id);
+  const locale = getLocale((await cookies()).get("tailor_locale")?.value);
+  const t = getTranslations(locale);
+  const text = locale === "en"
+    ? { allCustomers: "All customers", noContact: "No contact number on file", measurementProfiles: "Measurement Profiles", noProfiles: "No measurement profiles yet.", tailorOrders: "Tailor Orders", orderNo: "Order No", noTailorOrders: "No tailor orders yet." }
+    : locale === "fa"
+      ? { allCustomers: "تمام مشتریان", noContact: "شماره تماس ثبت نشده است", measurementProfiles: "پروفایل‌های اندازه‌گیری", noProfiles: "هنوز پروفایل اندازه‌گیری وجود ندارد.", tailorOrders: "سفارش‌های خیاطی", orderNo: "شماره سفارش", noTailorOrders: "هنوز سفارش خیاطی وجود ندارد." }
+      : { allCustomers: "ټول پېرېدونکي", noContact: "د اړیکې شمېره نه ده ثبت شوې", measurementProfiles: "د اندازو پروفایلونه", noProfiles: "تر اوسه د اندازې پروفایل نشته.", tailorOrders: "د خیاطۍ سپارښتنې", orderNo: "د سپارښتنې شمېره", noTailorOrders: "تر اوسه د خیاطۍ سپارښتنه نشته." };
 
   const [customer] = await db.select().from(customers).where(eq(customers.id, customerId));
   if (!customer) notFound();
@@ -22,20 +31,20 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     <div className="space-y-6 max-w-4xl">
       <div>
         <Link href="/customers" className="text-xs text-slate-400 hover:text-slate-600">
-          ← All customers
+          ← {text.allCustomers}
         </Link>
         <h1 className="text-lg font-semibold text-slate-900 mt-1">{customer.name}</h1>
         <p className="text-sm text-slate-500 mt-0.5">
-          {customer.phone || "No contact number on file"}
+          {customer.phone || text.noContact}
         </p>
       </div>
 
       <section>
-        <h2 className="text-sm font-semibold text-slate-900 mb-3">Measurement Profiles</h2>
+        <h2 className="text-sm font-semibold text-slate-900 mb-3">{text.measurementProfiles}</h2>
         <div className="grid grid-cols-1 gap-3 mb-4">
           {profiles.length === 0 && (
             <p className="text-sm text-slate-400 bg-white border border-slate-200 rounded-lg px-4 py-6 text-center">
-              No measurement profiles yet.
+              {text.noProfiles}
             </p>
           )}
           {profiles.map((p) => (
@@ -62,15 +71,15 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold text-slate-900 mb-3">Tailor Orders</h2>
+        <h2 className="text-sm font-semibold text-slate-900 mb-3">{text.tailorOrders}</h2>
         <div className="bg-white border border-slate-200 rounded-lg mobile-table-scroll">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
-                <th className="px-4 py-2">Order No</th>
-                <th className="px-4 py-2">Garment</th>
-                <th className="px-4 py-2">Stage</th>
-                <th className="px-4 py-2 text-right">Balance Due</th>
+                <th className="px-4 py-2">{text.orderNo}</th>
+                <th className="px-4 py-2">{t.garment}</th>
+                <th className="px-4 py-2">{t.stage}</th>
+                <th className="px-4 py-2 text-right">{t.balanceDue}</th>
                 <th className="px-4 py-2"></th>
               </tr>
             </thead>
@@ -78,7 +87,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               {orders.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
-                    No tailor orders yet.
+                    {text.noTailorOrders}
                   </td>
                 </tr>
               )}
@@ -94,7 +103,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                   <td className="px-4 py-2 text-right text-slate-900">{Number(o.balanceDue).toFixed(2)}</td>
                   <td className="px-4 py-2 text-right">
                     <a href={`/api/tailor-orders/${o.id}/pdf`} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-900 underline">
-                      PDF
+                      {t.pdf}
                     </a>
                   </td>
                 </tr>

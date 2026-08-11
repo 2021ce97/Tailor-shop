@@ -17,10 +17,11 @@ export default async function NewTailorOrderPage() {
     db.select().from(garmentDesignOptions).where(eq(garmentDesignOptions.isActive, true)).orderBy(asc(garmentDesignOptions.sortOrder)),
     db.select({ id: fabrics.id, name: fabrics.name, color: fabrics.color, unit: fabrics.unit, stockQty: fabrics.stockQty, sellingPricePerUnit: fabrics.sellingPricePerUnit }).from(fabrics).where(eq(fabrics.branchId, session.branchId)),
   ]);
+  const englishLabel = (code: string) => code.replace(/_/g, " ");
   const types = typeRows.map((type) => ({
-    id: type.id, code: type.code, name: locale === "ps" ? type.namePs : type.nameFa,
-    fields: fieldRows.filter((field) => field.garmentTypeId === type.id).map((field) => ({ code: field.code, label: locale === "ps" ? field.labelPs : field.labelFa, unit: field.unit, required: field.isRequired })),
-    categories: categoryRows.filter((category) => category.garmentTypeId === type.id).map((category) => ({ code: category.code, label: locale === "ps" ? category.labelPs : category.labelFa, required: category.isRequired, options: optionRows.filter((option) => option.categoryId === category.id).map((option) => ({ value: String(option.id), label: locale === "ps" ? option.labelPs : option.labelFa })) })),
+    id: type.id, code: type.code, name: locale === "ps" ? type.namePs : locale === "fa" ? type.nameFa : englishLabel(type.code),
+    fields: fieldRows.filter((field) => field.garmentTypeId === type.id).map((field) => ({ code: field.code, label: locale === "ps" ? field.labelPs : locale === "fa" ? field.labelFa : englishLabel(field.code), unit: field.unit, required: field.isRequired })),
+    categories: categoryRows.filter((category) => category.garmentTypeId === type.id).map((category) => ({ code: category.code, label: locale === "ps" ? category.labelPs : locale === "fa" ? category.labelFa : englishLabel(category.code), required: category.isRequired, options: optionRows.filter((option) => option.categoryId === category.id).map((option) => ({ value: String(option.id), label: locale === "ps" ? option.labelPs : locale === "fa" ? option.labelFa : option.labelFa })) })),
   }));
   return <GarmentOrderForm locale={locale} title={`${t.newOrder} — ${session.branchName}`} customers={customerRows.map((row) => ({ value: row.id, label: row.name, sublabel: [row.phone, row.code].filter(Boolean).join(" · ") }))} garmentTypes={types} fabrics={fabricRows} />;
 }

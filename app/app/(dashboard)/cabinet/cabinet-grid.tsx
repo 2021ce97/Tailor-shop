@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getStoredGarments } from "@/app/actions/cabinet";
+import type { TranslationSet } from "@/lib/i18n";
 
 interface CabinetLocation {
   id: number;
@@ -23,12 +24,19 @@ interface StoredGarment {
 interface CabinetGridProps {
   locale: "en" | "fa" | "ps";
   locations: CabinetLocation[];
+  translations: TranslationSet;
 }
 
-export function CabinetGrid({ locale, locations }: CabinetGridProps) {
+export function CabinetGrid({ locale, locations, translations: t }: CabinetGridProps) {
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
   const [storedGarments, setStoredGarments] = useState<StoredGarment[]>([]);
   const [loading, setLoading] = useState(false);
+  const legend = {
+    empty: locale === "en" ? "Empty" : locale === "fa" ? "خالی" : "خالي",
+    partial: locale === "en" ? "Partial" : locale === "fa" ? "جزئی" : "نیمه ډک",
+    nearlyFull: locale === "en" ? "Nearly full" : locale === "fa" ? "تقریباً پر" : "نږدې ډک",
+    full: locale === "en" ? "Full" : locale === "fa" ? "پر" : "ډک",
+  };
 
   function normalizeGarmentType(value: unknown): StoredGarment["garmentType"] {
     if (!value || typeof value !== "object") return null;
@@ -80,7 +88,7 @@ export function CabinetGrid({ locale, locations }: CabinetGridProps) {
       {/* Storage Grid */}
       <div className="lg:col-span-2">
         <h2 className="mb-4 font-semibold text-slate-900">
-          {locale === "ps" ? "خزانې" : "خانه‌های ذخیره‌گاه"}
+          {t.cabinet}
         </h2>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
           {locations.map((location) => (
@@ -111,19 +119,19 @@ export function CabinetGrid({ locale, locations }: CabinetGridProps) {
         <div className="mt-6 grid grid-cols-4 gap-3 text-xs">
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded bg-emerald-100 border border-emerald-200" />
-            <span>{locale === "ps" ? "خالي" : "خالی"}</span>
+            <span>{legend.empty}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded bg-blue-100 border border-blue-200" />
-            <span>{locale === "ps" ? "جزیی" : "جزئی"}</span>
+            <span>{legend.partial}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded bg-amber-100 border border-amber-200" />
-            <span>{locale === "ps" ? "تقریباً پوره" : "تقریباً پر"}</span>
+            <span>{legend.nearlyFull}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded bg-red-100 border border-red-200" />
-            <span>{locale === "ps" ? "پوره" : "پر"}</span>
+            <span>{legend.full}</span>
           </div>
         </div>
       </div>
@@ -133,9 +141,7 @@ export function CabinetGrid({ locale, locations }: CabinetGridProps) {
         <h3 className="mb-4 font-semibold text-slate-900">
           {selectedLocationId
             ? `${locations.find((l) => l.id === selectedLocationId)?.code} ${locale === "ps" ? "جامې" : "لباس‌ها"}`
-            : locale === "ps"
-              ? "خانه وټاکئ"
-              : "خانه را انتخاب کنید"}
+            : locale === "en" ? "Select a cabinet" : locale === "fa" ? "یک الماری را انتخاب کنید" : "یوه المارۍ وټاکئ"}
         </h3>
 
         {loading ? (
@@ -147,10 +153,10 @@ export function CabinetGrid({ locale, locations }: CabinetGridProps) {
             {selectedLocationId
               ? locale === "ps"
                 ? "کوم جامه نه ده"
-                : "هیچ لباسی موجود نیست"
+                : locale === "fa" ? "هیچ لباسی موجود نیست" : "No garments are stored here"
               : locale === "ps"
                 ? "لاړ کړئ"
-                : "..."}
+                : locale === "fa" ? "..." : "..."}
           </div>
         ) : (
           <div className="space-y-2">
@@ -162,7 +168,7 @@ export function CabinetGrid({ locale, locations }: CabinetGridProps) {
                       {garment.ticketNo}
                     </div>
                     <div className="text-xs text-slate-500">
-                      {garment.garmentType?.nameFa || "—"}
+                      {locale === "ps" ? garment.garmentType?.namePs || garment.garmentType?.code || "—" : locale === "fa" ? garment.garmentType?.nameFa || garment.garmentType?.code || "—" : garment.garmentType?.code || garment.garmentType?.nameFa || "—"}
                     </div>
                   </div>
                 </div>

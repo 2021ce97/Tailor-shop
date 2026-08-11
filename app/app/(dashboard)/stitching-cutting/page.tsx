@@ -15,19 +15,22 @@ export default async function StitchingCuttingPage() {
       .where(sql`${businessContacts.roles} ?| array['tailor','cutter']`),
   ]);
 
-  const text = locale === "ps"
+  const text = locale === "en"
     ? {
-        title: "ګنډل او پرې کول",
-        cutter: "قیچي کوونکی",
-        tailor: "خیاط",
-        assign: "سپارل",
-        complete: "بشپړ",
-        quality: "کیفیت تایید",
-        rate: "اجرت",
-        current: "کاری",
-        noItems: "هیڅ لباس شتون ندارد",
+        title: "Stitching and Cutting",
+        cutter: "Cutter",
+        tailor: "Tailor",
+        assign: "Assign",
+        complete: "Complete",
+        quality: "Approve quality",
+        rate: "Rate",
+        current: "Active work",
+        noItems: "No garments are in this stage.",
+        help: "Assign garments to cutters and tailors, then move them through quality and delivery.",
+        noActive: "No active assignments yet.",
       }
-    : {
+    : locale === "fa"
+      ? {
         title: "دوخت و برش",
         cutter: "برش‌کار",
         tailor: "خیاط",
@@ -36,7 +39,22 @@ export default async function StitchingCuttingPage() {
         quality: "تأیید کیفیت",
         rate: "اجرت",
         current: "کارهای جاری",
-        noItems: "هیچ لباسی در این مرحله نیست",
+        noItems: "هیچ لباسی در این مرحله نیست.",
+        help: "لباس‌ها را به برش‌کاران و خیاطان بسپارید، سپس آن‌ها را به کیفیت و تحویل منتقل کنید.",
+        noActive: "هنوز کار فعالی وجود ندارد.",
+      }
+      : {
+        title: "ګنډل او پرې کول",
+        cutter: "قیچي کوونکی",
+        tailor: "خیاط",
+        assign: "سپارل",
+        complete: "بشپړ",
+        quality: "کیفیت تایید",
+        rate: "اجرت",
+        current: "فعال کارونه",
+        noItems: "په دې پړاو کې لباس نشته.",
+        help: "لباسونه قیچي کوونکو او خیاطانو ته وسپارئ، بیا یې د کیفیت او سپارلو پړاوونو ته بوځئ.",
+        noActive: "تر اوسه فعال کار نشته.",
       };
 
   const activeAssignment = new Set(assignments.filter((assignment) => assignment.status === "assigned").map((assignment) => assignment.garmentItemId));
@@ -48,7 +66,7 @@ export default async function StitchingCuttingPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-slate-900">{text.title}</h1>
-        <p className="mt-1 text-sm text-slate-500">Assign garments to cutters and tailors, then move them through quality and delivery.</p>
+        <p className="mt-1 text-sm text-slate-500">{text.help}</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -98,7 +116,7 @@ export default async function StitchingCuttingPage() {
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <h2 className="mb-3 font-semibold text-slate-900">{text.current}</h2>
         {assignments.filter((assignment) => assignment.status === "assigned").length === 0 && qualityItems.length === 0 ? (
-          <p className="text-sm text-slate-500">No active assignments yet.</p>
+          <p className="text-sm text-slate-500">{text.noActive}</p>
         ) : null}
 
         {assignments.filter((assignment) => assignment.status === "assigned").map((assignment) => (

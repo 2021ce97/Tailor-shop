@@ -26,6 +26,11 @@ const AVAILABLE_ROLES = [
 export default function EditContactForm({ contact, locale, t }: EditContactFormProps) {
   const [state, formAction, pending] = useActionState(updateBusinessContact, { status: "idle" });
   const [selectedRoles, setSelectedRoles] = useState<string[]>(contact.roles || []);
+  const text = locale === "en"
+    ? { active: "Active", inactive: "Inactive", updating: "Updating...", update: "Update" }
+    : locale === "fa"
+      ? { active: "فعال", inactive: "غیرفعال", updating: "در حال بروزرسانی...", update: "بروزرسانی کنید" }
+      : { active: "فعال", inactive: "غیرفعال", updating: "سمېږي...", update: "سمول" };
 
   const handleRoleChange = (role: string) => {
     setSelectedRoles((prev) =>
@@ -51,7 +56,7 @@ export default function EditContactForm({ contact, locale, t }: EditContactFormP
 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-slate-900">
-          {locale === "ps" ? "نام" : "نام"}
+          {t.name}
         </label>
         <input
           type="text"
@@ -64,7 +69,7 @@ export default function EditContactForm({ contact, locale, t }: EditContactFormP
 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-slate-900">
-          {locale === "ps" ? "ٹیلیفون" : "شماره تماس"}
+          {t.phone}
         </label>
         <input
           type="tel"
@@ -76,7 +81,7 @@ export default function EditContactForm({ contact, locale, t }: EditContactFormP
 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-slate-900">
-          {locale === "ps" ? "دندے" : "نقش‌ها"}
+          {t.roles}
         </label>
         <div className="space-y-2">
           {AVAILABLE_ROLES.map((role) => (
@@ -98,7 +103,7 @@ export default function EditContactForm({ contact, locale, t }: EditContactFormP
 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-slate-900">
-          {locale === "ps" ? "حالت" : "وضعیت"}
+          {t.status}
         </label>
         <select
           name="status"
@@ -106,17 +111,17 @@ export default function EditContactForm({ contact, locale, t }: EditContactFormP
           className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
         >
           <option value="active">
-            {locale === "ps" ? "فعال" : "فعال"}
+            {text.active}
           </option>
           <option value="inactive">
-            {locale === "ps" ? "غیر فعال" : "غیرفعال"}
+            {text.inactive}
           </option>
         </select>
       </div>
 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-slate-900">
-          {locale === "ps" ? "یادداشت" : "یادداشت"}
+          {t.notes}
         </label>
         <textarea
           name="notes"
@@ -131,13 +136,7 @@ export default function EditContactForm({ contact, locale, t }: EditContactFormP
         disabled={pending}
         className="w-full px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 disabled:opacity-50"
       >
-        {pending
-          ? locale === "ps"
-            ? "اپ ڈیٹ ہو رہا ہے..."
-            : "در حال بروزرسانی..."
-          : locale === "ps"
-            ? "اپ ڈیٹ کریں"
-            : "بروزرسانی کنید"}
+        {pending ? text.updating : text.update}
       </button>
     </form>
   );
